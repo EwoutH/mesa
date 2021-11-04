@@ -37,7 +37,7 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.py }}-${{ hashFiles('Pipfile.lock') }}
-      if: matrix.python-version == 'pypy3'
+      if: matrix.py == 'pypy3'
     - name: Install dependencies
       run: pip install .[dev]
     - name: Test with pytest
