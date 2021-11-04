@@ -40,17 +40,31 @@ jobs:
       if: matrix.python-version == 'pypy3'
     - name: Install dependencies
       run: pip install .[dev]
-    - name: Lint with flake8
-      run: |
-        # Use settings from mesas .flake8 file
-        flake8 . --count --show-source --statistics
-    - name: Lint with black
-      if: matrix.python-version == '3.8'
-      run: |
-        pip install black
-        black --check --exclude=mesa/cookiecutter-mesa/* .
     - name: Test with pytest
-      run: |
-        pytest --cov=mesa tests/ --cov-report=xml
+      run: pytest --cov=mesa tests/ --cov-report=xml
     - name: Codecov
-      uses: codecov/codecov-action@v1.0.15
+      uses: codecov/codecov-action@v1.5.2
+
+  lint-flake:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.10"
+    - name: Lint with flake8
+      # Use settings from mesas .flake8 file
+      run: flake8 . --count --show-source --statistics
+
+  lint-black:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.10"
+    - run: pip install black
+    - name: Lint with black
+      run: black --check --exclude=mesa/cookiecutter-mesa/* .
