@@ -17,13 +17,13 @@ jobs:
         py: ["3.10"]
         include:
           - os: ubuntu
-            py: "3.6"
-          - os: ubuntu
-            py: "3.7"
+            py: "3.9"
           - os: ubuntu
             py: "3.8"
           - os: ubuntu
-            py: "3.9"
+            py: "3.7"
+          - os: ubuntu
+            py: "3.6"
           - os: ubuntu
             py: pypy3
 
