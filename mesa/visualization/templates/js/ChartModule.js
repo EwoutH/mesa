@@ -1,4 +1,5 @@
 var ChartModule = function(series, canvas_width, canvas_height) {
+    print("You did it, using Chart.js 3.6.1!")
     // Create the tag:
     var canvas_tag = "<canvas width='" + canvas_width + "' height='" + canvas_height + "' ";
     canvas_tag += "style='border:1px dotted'></canvas>";
