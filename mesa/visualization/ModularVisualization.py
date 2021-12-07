@@ -183,9 +183,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         if self.application.verbose:
             print("Socket opened!")
-        self.write_message(
-            {"type": "model_params", "params": self.application.user_params}
-        )
+        self.write_message({"type": "model_params", "params": self.application.user_params})
 
     def check_origin(self, origin):
         return True
@@ -217,9 +215,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
             # Is the param editable?
             if param in self.application.user_params:
-                if isinstance(
-                    self.application.model_kwargs[param], UserSettableParameter
-                ):
+                if isinstance(self.application.model_kwargs[param], UserSettableParameter):
                     self.application.model_kwargs[param].value = value
                 else:
                     self.application.model_kwargs[param] = value
@@ -257,9 +253,7 @@ class ModularServer(tornado.web.Application):
 
     EXCLUDE_LIST = ("width", "height")
 
-    def __init__(
-        self, model_cls, visualization_elements, name="Mesa Model", model_params={}
-    ):
+    def __init__(self, model_cls, visualization_elements, name="Mesa Model", model_params={}):
         """Create a new visualization server with the given elements."""
         # Prep visualization elements:
         self.visualization_elements = visualization_elements
@@ -303,9 +297,7 @@ class ModularServer(tornado.web.Application):
         model_params = {}
         for key, val in self.model_kwargs.items():
             if isinstance(val, UserSettableParameter):
-                if (
-                    val.param_type == "static_text"
-                ):  # static_text is never used for setting params
+                if val.param_type == "static_text":  # static_text is never used for setting params
                     continue
                 model_params[key] = val.value
             else:

@@ -20,9 +20,7 @@ class PdGrid(Model):
 
     payoff = {("C", "C"): 1, ("C", "D"): 0, ("D", "C"): 1.6, ("D", "D"): 0}
 
-    def __init__(
-        self, height=50, width=50, schedule_type="Random", payoffs=None, seed=None
-    ):
+    def __init__(self, height=50, width=50, schedule_type="Random", payoffs=None, seed=None):
         """
         Create a new Spatial Prisoners' Dilemma Model.
 
@@ -44,11 +42,7 @@ class PdGrid(Model):
                 self.schedule.add(agent)
 
         self.datacollector = DataCollector(
-            {
-                "Cooperating_Agents": lambda m: len(
-                    [a for a in m.schedule.agents if a.move == "C"]
-                )
-            }
+            {"Cooperating_Agents": lambda m: len([a for a in m.schedule.agents if a.move == "C"])}
         )
 
         self.running = True

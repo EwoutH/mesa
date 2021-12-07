@@ -11,14 +11,10 @@ from mesa.visualization.ModularVisualization import VisualizationElement
 class NetworkModule(VisualizationElement):
     package_includes = []
 
-    def __init__(
-        self, portrayal_method, canvas_height=500, canvas_width=500, library="sigma"
-    ):
+    def __init__(self, portrayal_method, canvas_height=500, canvas_width=500, library="sigma"):
         library_types = ["sigma", "d3"]
         if library not in library_types:
-            raise ValueError(
-                f"Invalid javascript library type. Expected one of: {library_types}"
-            )
+            raise ValueError(f"Invalid javascript library type. Expected one of: {library_types}")
 
         NetworkModule.package_includes = (
             ["NetworkModule_sigma.js", "sigma.min.js"]

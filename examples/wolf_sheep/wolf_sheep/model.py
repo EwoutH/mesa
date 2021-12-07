@@ -39,9 +39,7 @@ class WolfSheep(Model):
 
     verbose = False  # Print-monitoring
 
-    description = (
-        "A model for simulating wolf and sheep (predator-prey) ecosystem modelling."
-    )
+    description = "A model for simulating wolf and sheep (predator-prey) ecosystem modelling."
 
     def __init__(
         self,

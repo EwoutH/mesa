@@ -42,9 +42,7 @@ model_params = {
     "height": 20,
     "width": 20,
     "density": UserSettableParameter("slider", "Agent density", 0.8, 0.1, 1.0, 0.1),
-    "minority_pc": UserSettableParameter(
-        "slider", "Fraction minority", 0.2, 0.00, 1.0, 0.05
-    ),
+    "minority_pc": UserSettableParameter("slider", "Fraction minority", 0.2, 0.00, 1.0, 0.05),
     "homophily": UserSettableParameter("slider", "Homophily", 3, 0, 8, 1),
 }
 

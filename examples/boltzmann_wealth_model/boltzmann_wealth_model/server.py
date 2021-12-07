@@ -20,9 +20,7 @@ def agent_portrayal(agent):
 
 
 grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
-chart = ChartModule(
-    [{"Label": "Gini", "Color": "#0000FF"}], data_collector_name="datacollector"
-)
+chart = ChartModule([{"Label": "Gini", "Color": "#0000FF"}], data_collector_name="datacollector")
 
 model_params = {
     "N": UserSettableParameter(

@@ -54,9 +54,7 @@ def color_patch_draw(cell):
     return portrayal
 
 
-canvas_element = CanvasGrid(
-    color_patch_draw, grid_rows, grid_cols, canvas_width, canvas_height
-)
+canvas_element = CanvasGrid(color_patch_draw, grid_rows, grid_cols, canvas_width, canvas_height)
 
 server = ModularServer(
     ColorPatches,

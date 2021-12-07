@@ -178,9 +178,7 @@ class Grid:
             for col in range(self.height):
                 yield self.grid[row][col], row, col  # agent, x, y
 
-    def neighbor_iter(
-        self, pos: Coordinate, moore: bool = True
-    ) -> Iterator[GridContent]:
+    def neighbor_iter(self, pos: Coordinate, moore: bool = True) -> Iterator[GridContent]:
         """Iterate over position neighbors.
 
         Args:
@@ -351,9 +349,7 @@ class Grid:
         return x < 0 or x >= self.width or y < 0 or y >= self.height
 
     @accept_tuple_argument
-    def iter_cell_list_contents(
-        self, cell_list: Iterable[Coordinate]
-    ) -> Iterator[GridContent]:
+    def iter_cell_list_contents(self, cell_list: Iterable[Coordinate]) -> Iterator[GridContent]:
         """
         Args:
             cell_list: Array-like of (x, y) tuples, or single tuple.
@@ -365,9 +361,7 @@ class Grid:
         return filter(None, (self.grid[x][y] for x, y in cell_list))
 
     @accept_tuple_argument
-    def get_cell_list_contents(
-        self, cell_list: Iterable[Coordinate]
-    ) -> List[GridContent]:
+    def get_cell_list_contents(self, cell_list: Iterable[Coordinate]) -> List[GridContent]:
         """
         Args:
             cell_list: Array-like of (x, y) tuples, or single tuple.
@@ -540,9 +534,7 @@ class MultiGrid(Grid):
             self.empties.add(pos)
 
     @accept_tuple_argument
-    def iter_cell_list_contents(
-        self, cell_list: Iterable[Coordinate]
-    ) -> Iterator[GridContent]:
+    def iter_cell_list_contents(self, cell_list: Iterable[Coordinate]) -> Iterator[GridContent]:
         """
         Args:
             cell_list: Array-like of (x, y) tuples, or single tuple.
@@ -620,9 +612,7 @@ class HexGrid(Grid):
                 adjacent += [(x - 1, y), (x - 1, y - 1), (x + 1, y), (x + 1, y - 1)]
 
             if self.torus is False:
-                adjacent = list(
-                    filter(lambda coords: not self.out_of_bounds(coords), adjacent)
-                )
+                adjacent = list(filter(lambda coords: not self.out_of_bounds(coords), adjacent))
             else:
                 adjacent = [torus_adj_2d(coord) for coord in adjacent]
 
@@ -821,14 +811,10 @@ class ContinuousSpace:
         dists = deltas[:, 0] ** 2 + deltas[:, 1] ** 2
 
         (idxs,) = np.where(dists <= radius ** 2)
-        neighbors = [
-            self._index_to_agent[x] for x in idxs if include_center or dists[x] > 0
-        ]
+        neighbors = [self._index_to_agent[x] for x in idxs if include_center or dists[x] > 0]
         return neighbors
 
-    def get_heading(
-        self, pos_1: FloatCoordinate, pos_2: FloatCoordinate
-    ) -> FloatCoordinate:
+    def get_heading(self, pos_1: FloatCoordinate, pos_2: FloatCoordinate) -> FloatCoordinate:
         """Get the heading angle between two points, accounting for toroidal space.
 
         Args:

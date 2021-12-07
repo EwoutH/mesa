@@ -30,9 +30,7 @@ def network_portrayal(G):
 
 
 grid = NetworkModule(network_portrayal, 500, 500, library="sigma")
-chart = ChartModule(
-    [{"Label": "Gini", "Color": "Black"}], data_collector_name="datacollector"
-)
+chart = ChartModule([{"Label": "Gini", "Color": "Black"}], data_collector_name="datacollector")
 
 model_params = {
     "num_agents": UserSettableParameter(
@@ -56,7 +54,5 @@ model_params = {
     ),
 }
 
-server = ModularServer(
-    BoltzmannWealthModelNetwork, [grid, chart], "Money Model", model_params
-)
+server = ModularServer(BoltzmannWealthModelNetwork, [grid, chart], "Money Model", model_params)
 server.port = 8521

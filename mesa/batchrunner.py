@@ -15,10 +15,7 @@ from collections import OrderedDict
 
 
 class ParameterError(TypeError):
-    MESSAGE = (
-        "Parameters must map a name to a value. "
-        "These names did not match parameters: {}"
-    )
+    MESSAGE = "Parameters must map a name to a value. " "These names did not match parameters: {}"
 
     def __init__(self, bad_names):
         self.bad_names = bad_names
@@ -179,13 +176,9 @@ class FixedBatchRunner:
         # Collects data from datacollector object in model
         if results is not None:
             if results.model_reporters is not None:
-                self.datacollector_model_reporters[
-                    model_key
-                ] = results.get_model_vars_dataframe()
+                self.datacollector_model_reporters[model_key] = results.get_model_vars_dataframe()
             if results.agent_reporters is not None:
-                self.datacollector_agent_reporters[
-                    model_key
-                ] = results.get_agent_vars_dataframe()
+                self.datacollector_agent_reporters[model_key] = results.get_agent_vars_dataframe()
 
         return (
             getattr(self, "model_vars", None),
@@ -289,9 +282,7 @@ class FixedBatchRunner:
 
 class ParameterProduct:
     def __init__(self, variable_parameters):
-        self.param_names, self.param_lists = zip(
-            *(copy.deepcopy(variable_parameters)).items()
-        )
+        self.param_names, self.param_lists = zip(*(copy.deepcopy(variable_parameters)).items())
         self._product = product(*self.param_lists)
 
     def __iter__(self):
@@ -305,9 +296,7 @@ class ParameterProduct:
 # distributions, only lists.
 class ParameterSampler:
     def __init__(self, parameter_lists, n, random_state=None):
-        self.param_names, self.param_lists = zip(
-            *(copy.deepcopy(parameter_lists)).items()
-        )
+        self.param_names, self.param_lists = zip(*(copy.deepcopy(parameter_lists)).items())
         self.n = n
         if random_state is None:
             self.random_state = random.Random()
@@ -453,9 +442,7 @@ class BatchRunnerMP(BatchRunner):
                 # run each iterations specific number of times
                 for iter in range(self.iterations):
                     kwargs_repeated = kwargs.copy()
-                    all_kwargs.append(
-                        [self.model_cls, kwargs_repeated, self.max_steps, iter]
-                    )
+                    all_kwargs.append([self.model_cls, kwargs_repeated, self.max_steps, iter])
 
         elif len(self.fixed_parameters):
             count = 1
@@ -545,9 +532,7 @@ class BatchRunnerMP(BatchRunner):
 
         if self.processes > 1:
             with tqdm(total_iterations, disable=not self.display_progress) as pbar:
-                for params, model in self.pool.imap_unordered(
-                    self._run_wrappermp, run_iter_args
-                ):
+                for params, model in self.pool.imap_unordered(self._run_wrappermp, run_iter_args):
                     results[params] = model
                     pbar.update()
 

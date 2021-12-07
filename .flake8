@@ -6,3 +6,4 @@
 # W503	Line break occurred before a binary operator
 ignore = E203, E266, E501, W503
 exclude = docs, build
+max-line-length = 100

@@ -62,9 +62,7 @@ class BaseScheduler:
 
         if agent.unique_id in self._agents:
             raise Exception(
-                "Agent with unique id {0} already added to scheduler".format(
-                    repr(agent.unique_id)
-                )
+                "Agent with unique id {0} already added to scheduler".format(repr(agent.unique_id))
             )
 
         self._agents[agent.unique_id] = agent

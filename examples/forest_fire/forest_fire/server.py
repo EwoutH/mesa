@@ -19,12 +19,8 @@ def forest_fire_portrayal(tree):
 
 
 canvas_element = CanvasGrid(forest_fire_portrayal, 100, 100, 500, 500)
-tree_chart = ChartModule(
-    [{"Label": label, "Color": color} for (label, color) in COLORS.items()]
-)
-pie_chart = PieChartModule(
-    [{"Label": label, "Color": color} for (label, color) in COLORS.items()]
-)
+tree_chart = ChartModule([{"Label": label, "Color": color} for (label, color) in COLORS.items()])
+pie_chart = PieChartModule([{"Label": label, "Color": color} for (label, color) in COLORS.items()])
 
 model_params = {
     "height": 100,
