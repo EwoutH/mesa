@@ -118,19 +118,19 @@ The beginning of both classes looks like this:
 .. code:: python
 
     from mesa import Agent, Model
-    
-    
+
+
     class MoneyAgent(Agent):
         """An agent with fixed initial wealth."""
-    
+
         def __init__(self, unique_id, model):
             super().__init__(unique_id, model)
             self.wealth = 1
-    
-    
+
+
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N):
             self.num_agents = N
             # Create agents
@@ -170,11 +170,11 @@ this:
 
     from mesa import Agent, Model
     from mesa.time import RandomActivation
-    
-    
+
+
     class MoneyAgent(Agent):
         """An agent with fixed initial wealth."""
-    
+
         def __init__(self, unique_id, model):
             super().__init__(unique_id, model)
             self.wealth = 1
@@ -183,11 +183,11 @@ this:
             # The agent's step will go here.
             # For demonstration purposes we will print the agent's unique_id
             print("Hi, I am agent " + str(self.unique_id) + ".")
-    
-    
+
+
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N):
             self.num_agents = N
             self.schedule = RandomActivation(self)
@@ -262,7 +262,7 @@ With that in mind, we rewrite the agent ``step`` method, like this:
 
     class MoneyAgent(Agent):
         """An agent with fixed initial wealth."""
-    
+
         def __init__(self, unique_id, model):
             super().__init__(unique_id, model)
             self.wealth = 1
@@ -427,7 +427,7 @@ coordinates to place the agent.
 
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N, width, height):
             self.num_agents = N
             self.grid = MultiGrid(width, height, True)
@@ -523,7 +523,7 @@ Now, putting that all together should look like this:
 
     class MoneyAgent(Agent):
         """An agent with fixed initial wealth."""
-    
+
         def __init__(self, unique_id, model):
             super().__init__(unique_id, model)
             self.wealth = 1
@@ -550,7 +550,7 @@ Now, putting that all together should look like this:
 
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N, width, height):
             self.num_agents = N
             self.grid = MultiGrid(width, height, True)
@@ -647,19 +647,19 @@ measure of wealth inequality.
 .. code:: python
 
     from mesa.datacollection import DataCollector
-    
-    
+
+
     def compute_gini(model):
         agent_wealths = [agent.wealth for agent in model.schedule.agents]
         x = sorted(agent_wealths)
         N = model.num_agents
         B = sum(xi * (N - i) for i, xi in enumerate(x)) / (N * sum(x))
         return 1 + (1 / N) - 2 * B
-    
-    
+
+
     class MoneyAgent(Agent):
         """An agent with fixed initial wealth."""
-    
+
         def __init__(self, unique_id, model):
             super().__init__(unique_id, model)
             self.wealth = 1
@@ -682,11 +682,11 @@ measure of wealth inequality.
             self.move()
             if self.wealth > 0:
                 self.give_money()
-    
-    
+
+
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N, width, height):
             self.num_agents = N
             self.grid = MultiGrid(width, height, True)
@@ -890,11 +890,11 @@ True indefinitely.
         N = model.num_agents
         B = sum(xi * (N - i) for i, xi in enumerate(x)) / (N * sum(x))
         return 1 + (1 / N) - 2 * B
-    
-    
+
+
     class MoneyModel(Model):
         """A model with some number of agents."""
-    
+
         def __init__(self, N, width, height):
             self.num_agents = N
             self.grid = MultiGrid(width, height, True)
@@ -991,7 +991,7 @@ to `number_processes = 1`. More information on leveraging batch_run's multiproce
 .. code:: python
 
     params = {"width": 10, "height": 10, "N": range(10, 500, 10)}
-    
+
     results = batch_run(
         MoneyModel,
         parameters=params,
@@ -1042,7 +1042,7 @@ the list of dictionaries to a Pandas DataFrame and print its keys.
 .. code:: python
 
     import pandas as pd
-    
+
     results_df = pd.DataFrame(results)
     print(results_df.keys())
 
