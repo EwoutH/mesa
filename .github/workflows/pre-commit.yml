@@ -14,7 +14,7 @@ jobs:
       continue-on-error: true
     - uses: peter-evans/create-pull-request@v3
       with:
-        title: "Pyupgrade to Python 3.7"
-        branch: pyupgrade-37
+        title: "Pyupgrade to Python 3.8"
+        branch: pyupgrade-38
         base: main
-        commit-message: "[Bot] Pyupgrade to Python 3.7"
+        commit-message: "[Bot] Pyupgrade to Python 3.8"
