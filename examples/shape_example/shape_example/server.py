@@ -14,7 +14,6 @@ def agent_draw(agent):
         print(f"Uid: {agent.unique_id}, Heading: {agent.heading}")
         portrayal = {
             "Shape": "arrowHead",
-            "Filled": "true",
             "Layer": 2,
             "Color": ["#00FF00", "#99FF99"],
             "stroke_color": "#666666",
