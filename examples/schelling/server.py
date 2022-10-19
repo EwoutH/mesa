@@ -39,8 +39,5 @@ model_params = {
 }
 
 server = mesa.visualization.ModularServer(
-    Schelling,
-    [canvas_element, get_happy_agents, happy_chart],
-    "Schelling",
-    model_params,
+    Schelling, [canvas_element, get_happy_agents, happy_chart], "Schelling", model_params
 )

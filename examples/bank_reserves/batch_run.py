@@ -115,12 +115,7 @@ class BankReservesModel(mesa.Model):
        are all set via Slider"""
 
     def __init__(
-        self,
-        height=grid_h,
-        width=grid_w,
-        init_people=2,
-        rich_threshold=10,
-        reserve_percent=50,
+        self, height=grid_h, width=grid_w, init_people=2, rich_threshold=10, reserve_percent=50
     ):
         self.uid = next(self.id_gen)
         self.height = height
@@ -183,10 +178,7 @@ br_params = {
 }
 
 if __name__ == "__main__":
-    data = mesa.batch_run(
-        BankReservesModel,
-        br_params,
-    )
+    data = mesa.batch_run(BankReservesModel, br_params)
     br_df = pd.DataFrame(data)
     br_df.to_csv("BankReservesModel_Data.csv")
 

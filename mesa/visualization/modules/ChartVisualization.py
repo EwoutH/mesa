@@ -45,11 +45,7 @@ class ChartModule(VisualizationElement):
     package_includes = [CHART_JS_FILE, "ChartModule.js"]
 
     def __init__(
-        self,
-        series,
-        canvas_height=200,
-        canvas_width=500,
-        data_collector_name="datacollector",
+        self, series, canvas_height=200, canvas_width=500, data_collector_name="datacollector"
     ):
         """
         Create a new line chart visualization.

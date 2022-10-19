@@ -11,12 +11,7 @@ from mesa.visualization.ModularVisualization import VisualizationElement, D3_JS_
 class NetworkModule(VisualizationElement):
     package_includes = []
 
-    def __init__(
-        self,
-        portrayal_method,
-        canvas_height=500,
-        canvas_width=500,
-    ):
+    def __init__(self, portrayal_method, canvas_height=500, canvas_width=500):
         NetworkModule.package_includes = ["NetworkModule_d3.js", D3_JS_FILE]
 
         self.portrayal_method = portrayal_method

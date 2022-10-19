@@ -168,13 +168,7 @@ class Slider(UserParam):
     """
 
     def __init__(
-        self,
-        name="",
-        value=None,
-        min_value=None,
-        max_value=None,
-        step=1,
-        description=None,
+        self, name="", value=None, min_value=None, max_value=None, step=1, description=None
     ):
         self.param_type = SLIDER
         self.name = name

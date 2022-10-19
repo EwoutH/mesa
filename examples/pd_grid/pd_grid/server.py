@@ -11,9 +11,7 @@ model_params = {
     "height": 50,
     "width": 50,
     "schedule_type": mesa.visualization.Choice(
-        "Scheduler type",
-        value="Random",
-        choices=list(PdGrid.schedule_types.keys()),
+        "Scheduler type", value="Random", choices=list(PdGrid.schedule_types.keys())
     ),
 }
 

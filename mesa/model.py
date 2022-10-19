@@ -81,9 +81,7 @@ class Model:
                 "You must add agents to the scheduler before initializing the data collector."
             )
         self.datacollector = DataCollector(
-            model_reporters=model_reporters,
-            agent_reporters=agent_reporters,
-            tables=tables,
+            model_reporters=model_reporters, agent_reporters=agent_reporters, tables=tables
         )
         # Collect data for the first time during initialization.
         self.datacollector.collect(self)

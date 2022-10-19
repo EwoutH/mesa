@@ -80,12 +80,7 @@ model_params = {
         "Avg Node Degree", 3, 3, 8, 1, description="Avg Node Degree"
     ),
     "initial_outbreak_size": mesa.visualization.Slider(
-        "Initial Outbreak Size",
-        1,
-        1,
-        10,
-        1,
-        description="Initial Outbreak Size",
+        "Initial Outbreak Size", 1, 1, 10, 1, description="Initial Outbreak Size"
     ),
     "virus_spread_chance": mesa.visualization.Slider(
         "Virus Spread Chance",
@@ -123,9 +118,6 @@ model_params = {
 }
 
 server = mesa.visualization.ModularServer(
-    VirusOnNetwork,
-    [network, get_resistant_susceptible_ratio, chart],
-    "Virus Model",
-    model_params,
+    VirusOnNetwork, [network, get_resistant_susceptible_ratio, chart], "Virus Model", model_params
 )
 server.port = 8521

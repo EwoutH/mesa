@@ -15,15 +15,7 @@ import mesa.flat.visualization as visualization
 from mesa.datacollection import DataCollector
 from mesa.batchrunner import batch_run  # noqa
 
-__all__ = [
-    "Model",
-    "Agent",
-    "time",
-    "space",
-    "visualization",
-    "DataCollector",
-    "batch_run",
-]
+__all__ = ["Model", "Agent", "time", "space", "visualization", "DataCollector", "batch_run"]
 
 __title__ = "mesa"
 __version__ = "1.1.0"

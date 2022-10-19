@@ -30,15 +30,7 @@ class Citizen(mesa.Agent):
     """
 
     def __init__(
-        self,
-        unique_id,
-        model,
-        pos,
-        hardship,
-        regime_legitimacy,
-        risk_aversion,
-        threshold,
-        vision,
+        self, unique_id, model, pos, hardship, regime_legitimacy, risk_aversion, threshold, vision
     ):
         """
         Create a new Citizen.

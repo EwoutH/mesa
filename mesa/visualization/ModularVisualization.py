@@ -255,12 +255,7 @@ class ModularServer(tornado.web.Application):
     EXCLUDE_LIST = ("width", "height")
 
     def __init__(
-        self,
-        model_cls,
-        visualization_elements,
-        name="Mesa Model",
-        model_params=None,
-        port=None,
+        self, model_cls, visualization_elements, name="Mesa Model", model_params=None, port=None
     ):
         """
         Args:

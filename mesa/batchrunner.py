@@ -12,17 +12,7 @@ from functools import partial
 from itertools import count, product
 from multiprocessing import Pool, cpu_count
 from warnings import warn
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Type, Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -179,23 +169,14 @@ def _model_run_func(
         # If there is only model data, then create a single entry for the step
         else:
             stepdata = [
-                {
-                    "RunId": run_id,
-                    "iteration": iteration,
-                    "Step": step,
-                    **kwargs,
-                    **model_data,
-                }
+                {"RunId": run_id, "iteration": iteration, "Step": step, **kwargs, **model_data}
             ]
         data.extend(stepdata)
 
     return data
 
 
-def _collect_data(
-    model: Model,
-    step: int,
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def _collect_data(model: Model, step: int) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Collect model and agent data from a model using mesas datacollector."""
     dc = model.datacollector
 

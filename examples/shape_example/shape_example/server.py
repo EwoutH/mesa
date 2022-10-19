@@ -35,10 +35,7 @@ grid = mesa.visualization.CanvasGrid(
     agent_draw, width, height, width * pixel_ratio, height * pixel_ratio
 )
 server = mesa.visualization.ModularServer(
-    ShapeExample,
-    [grid],
-    "Shape Model Example",
-    {"N": num_agents, "width": width, "height": height},
+    ShapeExample, [grid], "Shape Model Example", {"N": num_agents, "width": width, "height": height}
 )
 server.max_steps = 0
 server.port = 8521

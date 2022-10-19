@@ -104,12 +104,7 @@ class BankReserves(mesa.Model):
        are all set via Slider"""
 
     def __init__(
-        self,
-        height=grid_h,
-        width=grid_w,
-        init_people=2,
-        rich_threshold=10,
-        reserve_percent=50,
+        self, height=grid_h, width=grid_w, init_people=2, rich_threshold=10, reserve_percent=50
     ):
         self.height = height
         self.width = width

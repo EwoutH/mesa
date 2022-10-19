@@ -150,12 +150,7 @@ def test_batch_run_single_core():
 
 def test_batch_run_unhashable_param():
     result = batch_run(
-        MockModel,
-        {
-            "n_agents": 2,
-            "variable_model_params": [{"key": "value"}],
-        },
-        iterations=2,
+        MockModel, {"n_agents": 2, "variable_model_params": [{"key": "value"}]}, iterations=2
     )
     template = {
         "Step": 1000,
@@ -166,32 +161,8 @@ def test_batch_run_unhashable_param():
     }
 
     assert result == [
-        {
-            "RunId": 0,
-            "iteration": 0,
-            "AgentID": 0,
-            "agent_id": 0,
-            **template,
-        },
-        {
-            "RunId": 0,
-            "iteration": 0,
-            "AgentID": 1,
-            "agent_id": 1,
-            **template,
-        },
-        {
-            "RunId": 1,
-            "iteration": 1,
-            "AgentID": 0,
-            "agent_id": 0,
-            **template,
-        },
-        {
-            "RunId": 1,
-            "iteration": 1,
-            "AgentID": 1,
-            "agent_id": 1,
-            **template,
-        },
+        {"RunId": 0, "iteration": 0, "AgentID": 0, "agent_id": 0, **template},
+        {"RunId": 0, "iteration": 0, "AgentID": 1, "agent_id": 1, **template},
+        {"RunId": 1, "iteration": 1, "AgentID": 0, "agent_id": 0, **template},
+        {"RunId": 1, "iteration": 1, "AgentID": 1, "agent_id": 1, **template},
     ]

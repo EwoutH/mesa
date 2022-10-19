@@ -137,8 +137,7 @@ class Grid:
         ...
 
     def __getitem__(
-        self,
-        index: int | Sequence[Coordinate] | tuple[int | slice, int | slice],
+        self, index: int | Sequence[Coordinate] | tuple[int | slice, int | slice]
     ) -> GridContent | list[GridContent]:
         """Access contents from the grid."""
 
@@ -210,11 +209,7 @@ class Grid:
         return self.iter_neighbors(pos, moore)
 
     def iter_neighborhood(
-        self,
-        pos: Coordinate,
-        moore: bool,
-        include_center: bool = False,
-        radius: int = 1,
+        self, pos: Coordinate, moore: bool, include_center: bool = False, radius: int = 1
     ) -> Iterator[Coordinate]:
         """Return an iterator over cell coordinates that are in the
         neighborhood of a certain point.
@@ -238,11 +233,7 @@ class Grid:
         yield from self.get_neighborhood(pos, moore, include_center, radius)
 
     def get_neighborhood(
-        self,
-        pos: Coordinate,
-        moore: bool,
-        include_center: bool = False,
-        radius: int = 1,
+        self, pos: Coordinate, moore: bool, include_center: bool = False, radius: int = 1
     ) -> list[Coordinate]:
         """Return a list of cells that are in the neighborhood of a
         certain point.
@@ -293,11 +284,7 @@ class Grid:
         return neighborhood
 
     def iter_neighbors(
-        self,
-        pos: Coordinate,
-        moore: bool,
-        include_center: bool = False,
-        radius: int = 1,
+        self, pos: Coordinate, moore: bool, include_center: bool = False, radius: int = 1
     ) -> Iterator[Agent]:
         """Return an iterator over neighbors to a certain point.
 
@@ -321,11 +308,7 @@ class Grid:
         return self.iter_cell_list_contents(neighborhood)
 
     def get_neighbors(
-        self,
-        pos: Coordinate,
-        moore: bool,
-        include_center: bool = False,
-        radius: int = 1,
+        self, pos: Coordinate, moore: bool, include_center: bool = False, radius: int = 1
     ) -> list[Agent]:
         """Return a list of neighbors to a certain point.
 
@@ -748,12 +731,7 @@ class ContinuousSpace:
     _grid = None
 
     def __init__(
-        self,
-        x_max: float,
-        y_max: float,
-        torus: bool,
-        x_min: float = 0,
-        y_min: float = 0,
+        self, x_max: float, y_max: float, torus: bool, x_min: float = 0, y_min: float = 0
     ) -> None:
         """Create a new continuous space.
 

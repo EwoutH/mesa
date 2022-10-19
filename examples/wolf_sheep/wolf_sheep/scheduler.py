@@ -14,9 +14,7 @@ class RandomActivationByTypeFiltered(mesa.time.RandomActivationByType):
     """
 
     def get_type_count(
-        self,
-        type_class: Type[mesa.Agent],
-        filter_func: Callable[[mesa.Agent], bool] = None,
+        self, type_class: Type[mesa.Agent], filter_func: Callable[[mesa.Agent], bool] = None
     ) -> int:
         """
         Returns the current number of agents of certain type in the queue that satisfy the filter function.

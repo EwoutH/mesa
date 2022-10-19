@@ -32,11 +32,7 @@ class PieChartModule(VisualizationElement):
     package_includes = [D3_JS_FILE, "PieChartModule.js"]
 
     def __init__(
-        self,
-        fields,
-        canvas_height=500,
-        canvas_width=500,
-        data_collector_name="datacollector",
+        self, fields, canvas_height=500, canvas_width=500, data_collector_name="datacollector"
     ):
         """
         Create a new line chart visualization.

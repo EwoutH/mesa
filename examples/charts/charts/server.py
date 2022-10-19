@@ -54,18 +54,10 @@ model_params = {
         "People", 25, 1, 200, description="Initial Number of People"
     ),
     "rich_threshold": mesa.visualization.Slider(
-        "Rich Threshold",
-        10,
-        1,
-        20,
-        description="Upper End of Random Initial Wallet Amount",
+        "Rich Threshold", 10, 1, 20, description="Upper End of Random Initial Wallet Amount"
     ),
     "reserve_percent": mesa.visualization.Slider(
-        "Reserves",
-        50,
-        1,
-        100,
-        description="Percent of deposits the bank has to hold in reserve",
+        "Reserves", 50, 1, 100, description="Percent of deposits the bank has to hold in reserve"
     ),
 }
 
@@ -90,10 +82,7 @@ model_bar = mesa.visualization.BarChartModule(
 )
 
 agent_bar = mesa.visualization.BarChartModule(
-    [{"Label": "Wealth", "Color": MID_COLOR}],
-    scope="agent",
-    sorting="ascending",
-    sort_by="Wealth",
+    [{"Label": "Wealth", "Color": MID_COLOR}], scope="agent", sorting="ascending", sort_by="Wealth"
 )
 
 pie_chart = mesa.visualization.PieChartModule(

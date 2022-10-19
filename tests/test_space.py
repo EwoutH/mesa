@@ -15,15 +15,7 @@ TEST_AGENTS_GRID = [(1, 1), (10, 0), (10, 10)]
 TEST_AGENTS_NETWORK_SINGLE = [0, 1, 5]
 TEST_AGENTS_NETWORK_MULTIPLE = [0, 1, 1]
 OUTSIDE_POSITIONS = [(70, 10), (30, 20), (100, 10)]
-REMOVAL_TEST_AGENTS = [
-    (-20, -20),
-    (-20, -20.05),
-    (65, 18),
-    (0, -11),
-    (20, 20),
-    (31, 41),
-    (55, 32),
-]
+REMOVAL_TEST_AGENTS = [(-20, -20), (-20, -20.05), (65, 18), (0, -11), (20, 20), (31, 41), (55, 32)]
 TEST_AGENTS_PERF = 200000
 
 
@@ -471,10 +463,7 @@ class TestMultipleNetworkGrid(unittest.TestCase):
 
     def test_get_cell_list_contents(self):
         assert self.space.get_cell_list_contents([0]) == [self.agents[0]]
-        assert self.space.get_cell_list_contents([1]) == [
-            self.agents[1],
-            self.agents[2],
-        ]
+        assert self.space.get_cell_list_contents([1]) == [self.agents[1], self.agents[2]]
         assert self.space.get_cell_list_contents(
             list(range(TestMultipleNetworkGrid.GRAPH_SIZE))
         ) == [self.agents[0], self.agents[1], self.agents[2]]
