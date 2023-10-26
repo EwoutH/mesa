@@ -22,19 +22,25 @@ def JupyterViz(
     agent_portrayal=None,
     space_drawer="default",
     play_interval=150,
+    space_format="png",
+    savefig_kwargs={},
 ):
-    """Initialize a component to visualize a model.
+    """
+    Initialize a component to visualize a model.
+
     Args:
-        model_class: class of the model to instantiate
-        model_params: parameters for initializing the model
-        measures: list of callables or data attributes to plot
-        name: name for display
-        agent_portrayal: options for rendering agents (dictionary)
-        space_drawer: method to render the agent space for
-            the model; default implementation is :meth:`make_space`;
-            simulations with no space to visualize should
-            specify `space_drawer=False`
-        play_interval: play interval (default: 150)
+        model_class (Mesa Model): The class of the model to instantiate.
+        model_params (dict): Parameters for initializing the model.
+        measures (list, optional): List of callables or data attributes to plot.
+        name (str, optional): Name for display. Default is "Mesa Model".
+        agent_portrayal (dict, optional): Options for rendering agents.
+        space_drawer (str or callable, optional): Method to render the agent space for the model;
+            the default implementation is :meth:`make_space`;
+            simulations with no space to visualize should specify `space_drawer=False`. Default is "default".
+        play_interval (int, optional): Play interval. Default is 150.
+        space_format (str, optional): The format to save the space figure in, either "png" or "svg". Default is "png".
+        savefig_kwargs (dict, optional): Extra arguments to pass to Matplotlib's `savefig` method when creating the space figure;
+            Example: `savefig_kwargs={"dpi": 300}`. Default is {}.
     """
 
     current_step, set_current_step = solara.use_state(0)
@@ -68,7 +74,7 @@ def JupyterViz(
         # 4. Space
         if space_drawer == "default":
             # draw with the default implementation
-            make_space(model, agent_portrayal)
+            make_space(model, agent_portrayal, space_format, savefig_kwargs)
         elif space_drawer:
             # if specified, draw agent space with an alternate renderer
             space_drawer(model, agent_portrayal)
@@ -235,7 +241,7 @@ def UserInputs(user_params, on_change=None):
             raise ValueError(f"{input_type} is not a supported input type")
 
 
-def make_space(model, agent_portrayal):
+def make_space(model, agent_portrayal, space_format="png", savefig_kwargs={}):
     space_fig = Figure()
     space_ax = space_fig.subplots()
     space = getattr(model, "grid", None)
@@ -249,7 +255,7 @@ def make_space(model, agent_portrayal):
     else:
         _draw_grid(space, space_ax, agent_portrayal)
     space_ax.set_axis_off()
-    solara.FigureMatplotlib(space_fig, format="png")
+    solara.FigureMatplotlib(space_fig, format=space_format, **savefig_kwargs)
 
 
 def _draw_grid(space, space_ax, agent_portrayal):
