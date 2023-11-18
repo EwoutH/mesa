@@ -120,6 +120,30 @@ class BaseScheduler:
             if agent_key in self._agents:
                 getattr(self._agents[agent_key], method)()
 
+    def do_vectorized(self, numpy_function: Callable, attribute_name: str, *args, **kwargs):
+        """
+        Apply a vectorized NumPy operation to a specified attribute of all agents.
+
+        Args:
+            numpy_function (Callable): The NumPy function to apply.
+            attribute_name (str): The name of the attribute to apply the operation to.
+            args, kwargs: Additional arguments and keyword arguments for the NumPy function.
+        """
+        # Extract the attribute values as a NumPy array
+        attribute_values = np.array([getattr(agent, attribute_name) for agent in self._agents.values()])
+
+        # Apply the vectorized operation
+        updated_values = numpy_function(attribute_values, *args, **kwargs)
+
+        # Assign the updated values back to the agents
+        for agent, updated_value in zip(self._agents.values(), updated_values):
+            setattr(agent, attribute_name, updated_value)
+
+
+# Example usage
+scheduler = BaseScheduler(my_model)
+scheduler.apply_vectorized_operation(np.add, 'attribute_name', 10)  # Adds 10 to the 'attribute_name' of each agent
+
 
 class RandomActivation(BaseScheduler):
     """
