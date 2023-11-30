@@ -41,6 +41,29 @@ class Model:
         self.running = True
         self.schedule = None
         self.current_id = 0
+        self.agents_by_type = {}
+
+    def create_agent(self, agent_type, *args, **kwargs):
+        """
+        Creates an agent of the given type with a unique ID and adds it to the agents_by_type dictionary.
+
+        Parameters:
+        agent_type (class): The class of the agent to be created.
+        *args, **kwargs: Additional arguments passed to the agent's constructor.
+
+        Returns:
+        An instance of the specified agent_type.
+        """
+        # Create a new agent instance with a unique ID
+        agent = agent_type(self.next_id(), self, *args, **kwargs)
+
+        # Add the agent to the agents_by_type dictionary
+        agent_class = agent.__class__
+        if agent_class not in self.agents_by_type:
+            self.agents_by_type[agent_class] = []
+        self.agents_by_type[agent_class].append(agent)
+
+        return agent
 
     def run_model(self) -> None:
         """Run the model until the end condition is reached. Overload as
