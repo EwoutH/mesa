@@ -30,6 +30,7 @@ class Agent:
             model: (Model): Instance of the model that contains the agent
         """
         self.unique_id = unique_id
+        self.agent_type = self.__class__
         self.model = model
         self.pos: Position | None = None
 
