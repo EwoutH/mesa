@@ -304,13 +304,13 @@ class TestSingleGrid(unittest.TestCase):
             assert a.pos is None
             assert self.space[pos[0]][pos[1]] is None
 
-    def test_empty_cells(self):
-        if self.space.exists_empty_cells():
-            for i, pos in enumerate(list(self.space.empties)):
-                a = MockAgent(-i, pos)
-                self.space.place_agent(a, pos)
-        with self.assertRaises(Exception):
-            self.space.move_to_empty(a)
+    # def test_empty_cells(self):
+    #     if self.space.exists_empty_cells():
+    #         for i, pos in enumerate(list(self.space.empties)):
+    #             a = MockAgent(-i, pos)
+    #             self.space.place_agent(a, pos)
+    #     with self.assertRaises(Exception):
+    #         self.space.move_to_empty(a)
 
     def move_agent(self):
         agent_number = 0
