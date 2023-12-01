@@ -44,7 +44,8 @@ import numpy as np
 import numpy.typing as npt
 
 # For Mypy
-from .agent import Agent
+from agent import Agent
+import random
 
 # for better performance, we calculate the tuple to use in the is_integer function
 _types_integer = (int, np.integer)
@@ -470,8 +471,8 @@ class _Grid:
         if num_empty_cells > self.cutoff_empties:
             while True:
                 new_pos = (
-                    agent.random.randrange(self.width),
-                    agent.random.randrange(self.height),
+                    random.randrange(self.width),
+                    random.randrange(self.height),
                 )
                 if self.is_cell_empty(new_pos):
                     break
@@ -561,19 +562,17 @@ class SingleGrid(_PropertyGrid):
             )
 
     def remove_agent(self, agent: Agent) -> None:
-        """Remove the agent from the grid and update the empties set."""
-        if (pos := agent.pos) is None:
-            # Warn that the agent was not on the grid.
+        """Remove an agent from the grid."""
+        x, y = agent.pos
+        if self._grid[x, y] == agent:  # Ensure the correct agent is being removed
+            self._grid[x, y] = None
+            agent.pos = None
+        else:
             warn(
                 f"Couldn't remove agent {agent.unique_id}, was not on the grid",
                 RuntimeWarning,
+                stacklevel=2,
             )
-            return
-
-        super().remove_agent(agent)  # Call the parent method to handle the removal
-
-        # Update the _empties set, since this is specific to SingleGrid
-        self._empties.add(pos)
 
     def move_agent(self, agent: Agent, new_pos: Coordinate) -> None:
         """Move an agent to a new grid position. Checks if the target cell is empty."""
@@ -625,9 +624,11 @@ class MultiGrid(_PropertyGrid):
                 f"Couldn't remove agent {agent.unique_id} from position {agent.pos}, "
                 "was not found at that location",
                 RuntimeWarning,
+                stacklevel=2,
             )
         agent.pos = None
 
+    @accept_tuple_argument
     def iter_cell_list_contents(
         self, cell_list: Iterable[Coordinate]
     ) -> Iterator[Agent]:
