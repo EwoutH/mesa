@@ -485,7 +485,52 @@ class _Grid:
         return len(self.empties) > 0
 
 
-class SingleGrid(_Grid):
+class _PropertyGrid(_Grid):
+    def __init__(self, width: int, height: int, torus: bool):
+        super().__init__(width, height, torus)
+        # NumPy 2D array to store agent objects directly
+        self._grid = np.full((width, height), None, dtype=object)
+
+    def place_agent(self, agent, pos: Coordinate) -> None:
+        """Place an agent on the grid."""
+        x, y = pos
+        self._grid[x, y] = agent
+        agent.pos = pos
+
+    def remove_agent(self, agent):
+        """Remove an agent from the grid."""
+        x, y = agent.pos
+        self._grid[x, y] = None
+        agent.pos = None
+
+    def get_agent(self, pos: Coordinate) -> Agent:
+        """Return the agent object at the specified position."""
+        return self._grid[pos[0], pos[1]]
+
+    def iter_cell_list_contents(self, cell_list: Iterable[Coordinate]) -> Iterator:
+        """Iterate over agents in the specified cells."""
+        return (self._grid[x, y] for x, y in cell_list if self._grid[x, y] is not None)
+
+    def move_agent(self, agent, new_pos: Coordinate) -> None:
+        """Move an agent to a new grid position."""
+        self.remove_agent(agent)
+        self.place_agent(agent, new_pos)
+
+    def is_cell_empty(self, pos: Coordinate) -> bool:
+        """Check if a specific cell is empty."""
+        return self._grid[pos[0], pos[1]] is None
+
+    def get_all_empty_cells(self) -> Iterable[Coordinate]:
+        """Get a list of all empty cells."""
+        return (
+            (x, y)
+            for x in range(self.width)
+            for y in range(self.height)
+            if self.is_cell_empty((x, y))
+        )
+
+
+class SingleGrid(_PropertyGrid):
     """Rectangular grid where each cell contains exactly at most one agent.
 
     Grid cells are indexed by [x, y], where [0, 0] is assumed to be the
@@ -507,28 +552,40 @@ class SingleGrid(_Grid):
     """
 
     def place_agent(self, agent: Agent, pos: Coordinate) -> None:
-        """Place the agent at the specified location, and set its pos variable."""
+        """Place an agent on the grid. Ensures only one agent per cell."""
         if self.is_cell_empty(pos):
-            x, y = pos
-            self._grid[x][y] = agent
-            if self._empties_built:
-                self._empties.discard(pos)
-            agent.pos = pos
+            super().place_agent(agent, pos)
         else:
-            raise Exception("Cell not empty")
+            raise Exception(
+                f"Cell is {pos} is not empty. Can't place agent {agent.unique_id} here."
+            )
 
     def remove_agent(self, agent: Agent) -> None:
-        """Remove the agent from the grid and set its pos attribute to None."""
+        """Remove the agent from the grid and update the empties set."""
         if (pos := agent.pos) is None:
+            # Warn that the agent was not on the grid.
+            warn(
+                f"Couldn't remove agent {agent.unique_id}, was not on the grid",
+                RuntimeWarning,
+            )
             return
-        x, y = pos
-        self._grid[x][y] = self.default_val()
-        if self._empties_built:
-            self._empties.add(pos)
-        agent.pos = None
+
+        super().remove_agent(agent)  # Call the parent method to handle the removal
+
+        # Update the _empties set, since this is specific to SingleGrid
+        self._empties.add(pos)
+
+    def move_agent(self, agent: Agent, new_pos: Coordinate) -> None:
+        """Move an agent to a new grid position. Checks if the target cell is empty."""
+        if self.is_cell_empty(new_pos):
+            super().move_agent(agent, new_pos)
+        else:
+            raise Exception(
+                f"Target cell {new_pos} is not empty. Can't move agent {agent.unique_id} here."
+            )
 
 
-class MultiGrid(_Grid):
+class MultiGrid(_PropertyGrid):
     """Rectangular grid where each cell can contain more than one agent.
 
     Grid cells are indexed by [x, y], where [0, 0] is assumed to be at
@@ -545,49 +602,50 @@ class MultiGrid(_Grid):
         empties: Returns a set of (x, y) tuples for all empty cells.
     """
 
-    grid: list[list[MultiGridContent]]
-
-    @staticmethod
-    def default_val() -> MultiGridContent:
-        """Default value for new cell elements."""
-        return []
+    def __init__(self, width: int, height: int, torus: bool) -> None:
+        super().__init__(width, height, torus)
+        # Overriding the grid to hold a list of agents in each cell
+        self._grid = np.empty((width, height), dtype=list)
+        for x in np.ndindex(self._grid.shape):
+            self._grid[x] = []
 
     def place_agent(self, agent: Agent, pos: Coordinate) -> None:
-        """Place the agent at the specified location, and set its pos variable."""
+        """Place an agent on the grid, allowing multiple agents per cell."""
         x, y = pos
-        if agent.pos is None or agent not in self._grid[x][y]:
-            self._grid[x][y].append(agent)
-            agent.pos = pos
-            if self._empties_built:
-                self._empties.discard(pos)
+        self._grid[x, y].append(agent)
+        agent.pos = pos
 
     def remove_agent(self, agent: Agent) -> None:
-        """Remove the agent from the given location and set its pos attribute to None."""
-        pos = agent.pos
-        x, y = pos
-        self._grid[x][y].remove(agent)
-        if self._empties_built and self.is_cell_empty(pos):
-            self._empties.add(pos)
+        """Remove an agent from the grid."""
+        x, y = agent.pos
+        if agent in self._grid[x, y]:
+            self._grid[x, y].remove(agent)
+        else:
+            warn(
+                f"Couldn't remove agent {agent.unique_id} from position {agent.pos}, "
+                "was not found at that location",
+                RuntimeWarning,
+            )
         agent.pos = None
 
-    @accept_tuple_argument
     def iter_cell_list_contents(
         self, cell_list: Iterable[Coordinate]
     ) -> Iterator[Agent]:
-        """Returns an iterator of the agents contained in the cells identified
-        in `cell_list`; cells with empty content are excluded.
+        """Iterate over agents in the specified cells."""
+        return itertools.chain.from_iterable(self._grid[x, y] for x, y in cell_list)
 
-        Args:
-            cell_list: Array-like of (x, y) tuples, or single tuple.
+    def get_agents(self, pos: Coordinate) -> list[Agent]:
+        """Return all agent objects at the specified position."""
+        return self._grid[pos[0], pos[1]]
 
-        Returns:
-            An iterator of the agents contained in the cells identified in `cell_list`.
-        """
-        return itertools.chain.from_iterable(
-            cell
-            for x, y in cell_list
-            if (cell := self._grid[x][y]) != self.default_val()
-        )
+    def is_cell_empty(self, pos: Coordinate) -> bool:
+        """Check if a specific cell is empty."""
+        return not self._grid[pos[0], pos[1]]
+
+    def move_agent(self, agent: Agent, new_pos: Coordinate) -> None:
+        """Move an agent to a new grid position."""
+        self.remove_agent(agent)
+        self.place_agent(agent, new_pos)
 
 
 class _HexGrid:
