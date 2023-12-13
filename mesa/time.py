@@ -26,7 +26,8 @@ Key concepts:
 from __future__ import annotations
 
 import heapq
-from collections import defaultdict
+import warnings
+from itertools import chain
 
 # mypy
 from typing import Union
@@ -48,45 +49,20 @@ class BaseScheduler:
 
     Attributes:
         - model (Model): The model instance associated with the scheduler.
+        - agent_order (list): Determines the order in which agent types (classes) are activated.
         - steps (int): The number of steps the scheduler has taken.
         - time (TimeT): The current time in the simulation. Can be an integer or a float.
 
     Methods:
-        - add: Adds an agent to the scheduler.
-        - remove: Removes an agent from the scheduler.
         - step: Executes a step, which involves activating each agent once.
-        - get_agent_count: Returns the number of agents in the scheduler.
-        - agents (property): Returns a list of all agent instances.
     """
 
-    def __init__(self, model: Model) -> None:
+    def __init__(self, model: Model, agent_order: None | list = None) -> None:
         """Create a new, empty BaseScheduler."""
         self.model = model
+        self.agent_order = agent_order
         self.steps = 0
         self.time: TimeT = 0
-        self._agents: dict[int, Agent] = {}
-
-    def add(self, agent: Agent) -> None:
-        """Add an Agent object to the schedule.
-
-        Args:
-            agent: An Agent to be added to the schedule. NOTE: The agent must
-            have a step() method.
-        """
-        if agent.unique_id in self._agents:
-            raise Exception(
-                f"Agent with unique id {agent.unique_id!r} already added to scheduler"
-            )
-
-        self._agents[agent.unique_id] = agent
-
-    def remove(self, agent: Agent) -> None:
-        """Remove all instances of a given agent from the schedule.
-
-        Args:
-            agent: An agent object.
-        """
-        del self._agents[agent.unique_id]
 
     def step(self) -> None:
         """Execute the step of all the agents, one at a time."""
@@ -96,30 +72,41 @@ class BaseScheduler:
         self.steps += 1
         self.time += 1
 
-    def get_agent_count(self) -> int:
-        """Returns the current number of agents in the queue."""
-        return len(self._agents)
-
     @property
     def agents(self) -> list[Agent]:
-        return list(self._agents.values())
+        return list(chain.from_iterable(self.model.agents_by_type.values()))
 
     def get_agent_keys(self, shuffle: bool = False) -> list[int]:
-        # To be able to remove and/or add agents during stepping
-        # it's necessary to cast the keys view to a list.
-        agent_keys = list(self._agents.keys())
+        agent_keys = []
+        if self.agent_order:
+            for agent_type in self.agent_order:
+                agent_keys.extend(self.model.agents_by_type.get(agent_type, []))
+        else:
+            # Default behavior
+            agent_keys = list(chain.from_iterable(self.model.agents_by_type.values()))
+
         if shuffle:
             self.model.random.shuffle(agent_keys)
         return agent_keys
 
     def do_each(self, method, agent_keys=None, shuffle=False):
         if agent_keys is None:
-            agent_keys = self.get_agent_keys()
-        if shuffle:
-            self.model.random.shuffle(agent_keys)
+            if self.agent_order:
+                agent_keys = self.get_agent_keys()
+            else:
+                # Default behavior
+                agent_keys = list(
+                    chain.from_iterable(self.model.agents_by_type.values())
+                )
+                if shuffle:
+                    self.model.random.shuffle(agent_keys)
+
         for agent_key in agent_keys:
-            if agent_key in self._agents:
-                getattr(self._agents[agent_key], method)()
+            # Assuming each agent key uniquely identifies an agent across all types
+            for agents in self.model.agents_by_type.values():
+                if agent_key in agents:
+                    getattr(agents[agent_key], method)()
+                    break
 
 
 class RandomActivation(BaseScheduler):
@@ -240,94 +227,26 @@ class StagedActivation(BaseScheduler):
         self.steps += 1
 
 
-class RandomActivationByType(BaseScheduler):
+class RandomActivationByType(RandomActivation):
     """
-    A scheduler that activates each type of agent once per step, in random order, with the order reshuffled every step.
+    [Deprecation Warning] This scheduler is deprecated and will be removed in future releases.
+    Please use RandomActivation directly. This class now directly inherits from RandomActivation
+    and does not add any additional functionality.
 
-    This scheduler is useful for models with multiple types of agents, ensuring that each type is treated
-    equitably in terms of activation order. The randomness in activation order helps in reducing biases
-    due to ordering effects.
+    A scheduler that activates each type of agent once per step, in random order, with the order
+    reshuffled every step. Inherits all attributes and methods from RandomActivation.
 
-    Inherits all attributes and methods from BaseScheduler.
-
-    If you want to do some computations / data collections specific to an agent
-    type, you can either:
-    - loop through all agents, and filter by their type
-    - access via `your_model.scheduler.agents_by_type[your_type_class]`
-
-    Attributes:
-        - agents_by_type (defaultdict): A dictionary mapping agent types to dictionaries of agents.
-
-    Methods:
-        - step: Executes the step of each agent type in a random order.
-        - step_type: Activates all agents of a given type.
-        - get_type_count: Returns the count of agents of a specific type.
+    The 'agent_order' attribute can be used to specify the order in which agent types are activated.
     """
 
-    def __init__(self, model: Model) -> None:
-        super().__init__(model)
-        self.agents_by_type = defaultdict(dict)
-
-    def add(self, agent: Agent) -> None:
-        """
-        Add an Agent object to the schedule
-
-        Args:
-            agent: An Agent to be added to the schedule.
-        """
-        super().add(agent)
-        agent_class: type[Agent] = type(agent)
-        self.agents_by_type[agent_class][agent.unique_id] = agent
-
-    def remove(self, agent: Agent) -> None:
-        """
-        Remove all instances of a given agent from the schedule.
-        """
-        del self._agents[agent.unique_id]
-
-        agent_class: type[Agent] = type(agent)
-        del self.agents_by_type[agent_class][agent.unique_id]
-
-    def step(self, shuffle_types: bool = True, shuffle_agents: bool = True) -> None:
-        """
-        Executes the step of each agent type, one at a time, in random order.
-
-        Args:
-            shuffle_types: If True, the order of execution of each types is
-                           shuffled.
-            shuffle_agents: If True, the order of execution of each agents in a
-                            type group is shuffled.
-        """
-        # To be able to remove and/or add agents during stepping
-        # it's necessary to cast the keys view to a list.
-        type_keys: list[type[Agent]] = list(self.agents_by_type.keys())
-        if shuffle_types:
-            self.model.random.shuffle(type_keys)
-        for agent_class in type_keys:
-            self.step_type(agent_class, shuffle_agents=shuffle_agents)
-        self.steps += 1
-        self.time += 1
-
-    def step_type(self, type_class: type[Agent], shuffle_agents: bool = True) -> None:
-        """
-        Shuffle order and run all agents of a given type.
-        This method is equivalent to the NetLogo 'ask [breed]...'.
-
-        Args:
-            type_class: Class object of the type to run.
-        """
-        agent_keys: list[int] = list(self.agents_by_type[type_class].keys())
-        if shuffle_agents:
-            self.model.random.shuffle(agent_keys)
-        for agent_key in agent_keys:
-            if agent_key in self.agents_by_type[type_class]:
-                self.agents_by_type[type_class][agent_key].step()
-
-    def get_type_count(self, type_class: type[Agent]) -> int:
-        """
-        Returns the current number of agents of certain type in the queue.
-        """
-        return len(self.agents_by_type[type_class])
+    def __new__(cls, model: Model, agent_order: None | list = None):
+        warnings.warn(
+            "RandomActivationByType is deprecated and will be removed in future releases. "
+            "Use RandomActivation with 'agent_order' specified instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return super().__new__(cls, model, agent_order)
 
 
 class DiscreteEventScheduler(BaseScheduler):
