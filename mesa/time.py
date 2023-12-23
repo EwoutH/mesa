@@ -25,15 +25,11 @@ Key concepts:
 # Remove this __future__ import once the oldest supported Python is 3.10
 from __future__ import annotations
 
-import functools
 import heapq
 import warnings
-from collections import defaultdict
 
 # mypy
 from typing import Union, Iterable
-
-from typing import TYPE_CHECKING, Any, Callable, Iterator
 
 from mesa.agent import Agent, AgentSet
 from mesa.model import Model
@@ -73,7 +69,9 @@ class BaseScheduler:
             agents = []
 
         self._agents: AgentSet = AgentSet(agents, model)
-        self._warning_given = False
+
+        self._remove_warning_given = False
+        self._agents_key_warning_given = False
 
     def add(self, agent: Agent) -> None:
         """Add an Agent object to the schedule.
@@ -94,8 +92,8 @@ class BaseScheduler:
         Args:
             agent: An agent object.
         """
-        if not self._warning_given:
-            self._warning_given = True
+        if not self._remove_warning_given:
+            self._remove_warning_given = True
         warnings.warn(
             "Because of the shift to using weakrefs, it is no longer needed to explicitly remove"
             "agents from a scheduler",
@@ -122,13 +120,22 @@ class BaseScheduler:
         # a bit dirty, but returns a copy of the internal agentset
         return self._agents.select()
 
-    # def get_agent_keys(self, shuffle: bool = False) -> list[int]:
-    #     # To be able to remove and/or add agents during stepping
-    #     # it's necessary to cast the keys view to a list.
-    #     agent_keys = [agent.unique_id for agent in self._agents]
-    #     if shuffle:
-    #         self.model.random.shuffle(agent_keys)
-    #     return agent_keys
+    def get_agent_keys(self, shuffle: bool = False) -> list[int]:
+        # To be able to remove and/or add agents during stepping
+        # it's necessary to cast the keys view to a list.
+
+        if not self._agents_key_warning_given:
+            self._agents_key_warning_given = True
+            warnings.warn(
+                "Because of the shift to using weakrefs, this method will be removed in a future version",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        agent_keys = [agent.unique_id for agent in self._agents]
+        if shuffle:
+            self.model.random.shuffle(agent_keys)
+        return agent_keys
 
     def do_each(self, method, shuffle=False):
         # if agent_keys is None:
@@ -137,6 +144,7 @@ class BaseScheduler:
         if shuffle:
             self.agents.shuffle(inplace=True)
         self.agents.do(method)
+
 
 class RandomActivation(BaseScheduler):
     """
@@ -215,12 +223,12 @@ class StagedActivation(BaseScheduler):
     """
 
     def __init__(
-        self,
-        model: Model,
-        agents: Iterable[Agent] = None,
-        stage_list: list[str] | None = None,
-        shuffle: bool = False,
-        shuffle_between_stages: bool = False,
+            self,
+            model: Model,
+            agents: Iterable[Agent] = None,
+            stage_list: list[str] | None = None,
+            shuffle: bool = False,
+            shuffle_between_stages: bool = False,
     ) -> None:
         """Create an empty Staged Activation schedule.
 
@@ -245,7 +253,6 @@ class StagedActivation(BaseScheduler):
         # To be able to remove and/or add agents during stepping
         # it's necessary for the keys view to be a list.
         # agent_keys = self.get_agent_keys(self.shuffle)
-
 
         shuffle = self.shuffle
         for stage in self.stage_list:
@@ -289,9 +296,7 @@ class RandomActivationByType(BaseScheduler):
     def __init__(self, model: Model, agents: Iterable[Agent] = None) -> None:
         super().__init__(model, agents)
 
-
-        # TODO:: can't be a defaultdict because we need to pass model
-        # to AgentSet
+        # can't be a defaultdict because we need to pass model to AgentSet
         self.agents_by_type: [type, AgentSet] = {}
 
         if agents is not None:
@@ -300,7 +305,6 @@ class RandomActivationByType(BaseScheduler):
                     self.agents_by_type[type(agent)].add(agent)
                 except KeyError:
                     self.agents_by_type[type(agent)] = AgentSet([agent], self.model)
-
 
     def add(self, agent: Agent) -> None:
         """
@@ -321,7 +325,7 @@ class RandomActivationByType(BaseScheduler):
         Remove all instances of a given agent from the schedule.
         """
         super().remove(agent)
-        # redunant because of weakrefs. super call only done because of warning
+        # redundant because of weakrefs. super call only done because of warning
         # agent_class: type[Agent] = type(agent)
         # del self.agents_by_type[agent_class][agent.unique_id]
 
@@ -351,11 +355,9 @@ class RandomActivationByType(BaseScheduler):
         This method is equivalent to the NetLogo 'ask [breed]...'.
 
         Args:
-            type_class: Class object of the type to run.
+            agenttype: Class object of the type to run.
         """
-        #FIXME:: type_class should be renamed to agent_type to keep api consistency
         agents = self.agents_by_type[agenttype]
-
 
         if shuffle_agents:
             agents.shuffle(inplace=True)
@@ -414,6 +416,7 @@ class DiscreteEventScheduler(BaseScheduler):
 
     def __init__(self, model: Model, time_step: TimeT = 1) -> None:
         super().__init__(model)
+        # TODO:: should go to weakrefs as well...
         self.event_queue: list[tuple[TimeT, float, Agent]] = []
         self.time_step: TimeT = time_step  # Fixed time period for each step
 
@@ -453,7 +456,7 @@ class DiscreteEventScheduler(BaseScheduler):
             self.time = time
 
             # Execute the event
-            if agent.unique_id in self._agents:
+            if agent in self._agents:
                 agent.step()
 
         # After processing events, advance time by the time_step
