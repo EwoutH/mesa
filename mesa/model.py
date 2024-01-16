@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import itertools
 import random
+import warnings
 from collections import defaultdict
 
 # mypy
@@ -61,6 +62,9 @@ class Model:
         start the model. Always start with super().__init__() to initialize the
         model object properly.
         """
+        self._initializing = (
+            True  # Flag to indicate that the model is in the initialization phase
+        )
 
         self.running = True
         self.schedule = None
@@ -69,6 +73,16 @@ class Model:
 
         # Warning flags for current experimental features. These make sure a warning is only printed once per model.
         self.agentset_experimental_warning_given = False
+
+        self._initializing = False  # Initialization complete
+
+    def __setattr__(self, name, value):
+        if name in {"agents", "time", "steps"} and not self._initializing:
+            warnings.warn(
+                f"'{name}' is a reserved attribute name in the Mesa Model class. Please choose another variable name for {name}",
+                RuntimeWarning,
+            )
+        super().__setattr__(name, value)
 
     @property
     def agents(self) -> AgentSet:
