@@ -12,13 +12,13 @@ from configurations import configurations
 def run_model(model_class, seed, parameters):
     start_init = timeit.default_timer()
     model = model_class(seed=seed, **parameters)
-    #   time.sleep(0.001)
+    time.sleep(0.001)
 
     end_init_start_run = timeit.default_timer()
 
     for _ in range(config["steps"]):
         model.step()
-    #       time.sleep(0.0001)
+        time.sleep(0.0001)
     end_run = timeit.default_timer()
 
     return (end_init_start_run - start_init), (end_run - end_init_start_run)
