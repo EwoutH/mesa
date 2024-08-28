@@ -8,17 +8,37 @@ Core Objects: Model
 # Remove this __future__ import once the oldest supported Python is 3.10
 from __future__ import annotations
 
+import functools
 import itertools
 import random
 from collections import defaultdict
 
 # mypy
-from typing import Any
+from typing import Any, Callable
 
 from mesa.agent import Agent, AgentSet
 from mesa.datacollection import DataCollector
 
 TimeT = float | int
+
+
+def parameterized_step_decorator(stepsize=1, time_delta=1):
+    def step_decorator(func: Callable) -> Callable:
+        # no need to decorate more than once
+        if hasattr(func, "__wrapped__"):
+            return func
+
+        @functools.wraps(func)
+        def _wrapped_step(obj, *args: Any, **kwargs: Any) -> None:
+            """Automatically increments time and steps before calling the user's step method."""
+            obj._steps += stepsize
+            obj._time += time_delta
+            func(obj, *args, **kwargs)
+            # obj.datacollector.collect()
+
+        return _wrapped_step
+
+    return step_decorator
 
 
 class Model:
@@ -50,6 +70,12 @@ class Model:
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Any:
         """Create a new model object and instantiate its RNG automatically."""
+        # Wrap the user-defined step method
+        # fixme this should not be done in init but in mesaclass or class decorator
+        if hasattr(cls, "step"):
+            setattr(cls, "step", parameterized_step_decorator()(getattr(cls, "step")))
+
+
         obj = object.__new__(cls)
         obj._seed = kwargs.get("seed")
         if obj._seed is None:
@@ -76,19 +102,7 @@ class Model:
         self._steps: int = 0
         self._time: TimeT = 0  # the model's clock
 
-        # Wrap the user-defined step method
-        if hasattr(self, "step"):
-            self._user_step = self.step
-            self.step = self._wrapped_step
 
-    def _wrapped_step(self, *args: Any, **kwargs: Any) -> None:
-        """Automatically increments time and steps after calling the user's step method."""
-        # Automatically increment time and step counters
-        self._time += kwargs.get("time", 1)
-        self._steps += kwargs.get("step", 1)
-        # Call the original user-defined step method
-        if self._user_step:
-            self._user_step(*args, **kwargs)
 
     @property
     def agents(self) -> AgentSet:
@@ -147,10 +161,10 @@ class Model:
         self._seed = seed
 
     def initialize_data_collector(
-        self,
-        model_reporters=None,
-        agent_reporters=None,
-        tables=None,
+            self,
+            model_reporters=None,
+            agent_reporters=None,
+            tables=None,
     ) -> None:
         if not hasattr(self, "schedule") or self.schedule is None:
             raise RuntimeError(
