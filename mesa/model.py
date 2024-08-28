@@ -12,9 +12,10 @@ import functools
 import itertools
 import random
 from collections import defaultdict
+from collections.abc import Callable
 
 # mypy
-from typing import Any, Callable
+from typing import Any
 
 from mesa.agent import Agent, AgentSet
 from mesa.datacollection import DataCollector
@@ -73,8 +74,7 @@ class Model:
         # Wrap the user-defined step method
         # fixme this should not be done in init but in mesaclass or class decorator
         if hasattr(cls, "step"):
-            setattr(cls, "step", parameterized_step_decorator()(getattr(cls, "step")))
-
+            cls.step = parameterized_step_decorator()(cls.step)
 
         obj = object.__new__(cls)
         obj._seed = kwargs.get("seed")
@@ -101,8 +101,6 @@ class Model:
 
         self._steps: int = 0
         self._time: TimeT = 0  # the model's clock
-
-
 
     @property
     def agents(self) -> AgentSet:
@@ -161,10 +159,10 @@ class Model:
         self._seed = seed
 
     def initialize_data_collector(
-            self,
-            model_reporters=None,
-            agent_reporters=None,
-            tables=None,
+        self,
+        model_reporters=None,
+        agent_reporters=None,
+        tables=None,
     ) -> None:
         if not hasattr(self, "schedule") or self.schedule is None:
             raise RuntimeError(
