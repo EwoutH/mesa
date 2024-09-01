@@ -58,8 +58,8 @@ batch = [
   "tqdm",
 ]
 dev = [
-  "ruff"
-  "pytest"
+  "ruff",
+  "pytest",
   "pytest-cov",
   "sphinx",
   "pytest-mock",
@@ -74,7 +74,7 @@ docs = [
   "pydata_sphinx_theme",
   "seaborn",
   "myst-nb",
-  "myst-parser",         # Markdown in Sphinx
+  "myst-parser",  # Markdown in Sphinx
 ]
 
 [project.urls]
