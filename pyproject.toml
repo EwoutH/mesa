@@ -36,28 +36,37 @@ classifiers = [
 ]
 readme = "README.md"
 dependencies = [
-  "click",
-  "cookiecutter",
-  "matplotlib",
-  "networkx",
   "numpy",
-  "pandas",
-  "solara",
-  "tqdm",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
+rec = ["mesa[network,viz,data,batch]"]
+all = ["mesa[network,viz,data,batch,dev,examples,docs]"]
+
+network = [
+  "networkx",
+]
+viz = [
+  "matplotlib",
+  "solara",
+]
+data = [
+  "pandas",
+]
+batch = [
+  "tqdm",
+]
 dev = [
-  "ruff~=0.1.1",   # Update periodically
-  "pytest >= 4.6",
+  "ruff"
+  "pytest"
   "pytest-cov",
   "sphinx",
   "pytest-mock",
 ]
 examples = [
-  "pytest >= 4.6",
-  "scipy"
+  "pytest",
+  "scipy",
 ]
 docs = [
   "sphinx",
