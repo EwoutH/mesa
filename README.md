@@ -30,25 +30,38 @@ can be displayed in browser windows or Jupyter.*
 
 To install our latest stable release (2.3.x), run:
 
-``` bash
+```bash
 pip install -U mesa
 ```
 
 To install our latest pre-release (3.0.0 alpha), run:
 
-``` bash
+```bash
 pip install -U --pre mesa
+```
+With Mesa 3.0, we don't install all our dependencies anymore by default.
+```bash
+# With our recommended dependencies
+pip install -U --pre mesa[rec]
+```
+```bash
+# You can customize the dependencies you need, if you want. Available are:
+pip install -U --pre mesa[network,viz,data,batch]
+```
+```bash
+# With all, including developer, dependencies:
+pip install -U --pre mesa[all]
 ```
 
 You can also use `pip` to install the latest GitHub version:
 
-``` bash
+```bash
 pip install -U -e git+https://github.com/projectmesa/mesa@main#egg=mesa
 ```
 
 Or any other (development) branch on this repo or your own fork:
 
-``` bash
+```bash
 pip install -U -e git+https://github.com/YOUR_FORK/mesa@YOUR_BRANCH#egg=mesa
 ```
 
@@ -75,7 +88,7 @@ If you are a Mesa developer, first [install Docker
 Compose](https://docs.docker.com/compose/install/) and then, in the
 folder containing the Mesa Git repository, you run:
 
-``` bash
+```bash
 $ docker compose up
 # If you want to make it run in the background, you instead run
 $ docker compose up -d
