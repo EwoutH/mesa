@@ -1,8 +1,7 @@
 """Test Batchrunner."""
 
-import mesa
 from mesa.agent import Agent
-from mesa.batchrunner import _make_model_kwargs
+from mesa.batchrunner import _make_model_kwargs, batch_run
 from mesa.datacollection import DataCollector
 from mesa.model import Model
 from mesa.time import BaseScheduler
@@ -103,7 +102,7 @@ class MockModel(Model):
 
 
 def test_batch_run():  # noqa: D103
-    result = mesa.batch_run(MockModel, {}, number_processes=2)
+    result = batch_run(MockModel, {}, number_processes=2)
     assert result == [
         {
             "RunId": 0,
@@ -136,7 +135,7 @@ def test_batch_run():  # noqa: D103
 
 
 def test_batch_run_with_params():  # noqa: D103
-    mesa.batch_run(
+    batch_run(
         MockModel,
         {
             "variable_model_params": range(3),
@@ -147,9 +146,7 @@ def test_batch_run_with_params():  # noqa: D103
 
 
 def test_batch_run_no_agent_reporters():  # noqa: D103
-    result = mesa.batch_run(
-        MockModel, {"enable_agent_reporters": False}, number_processes=2
-    )
+    result = batch_run(MockModel, {"enable_agent_reporters": False}, number_processes=2)
     print(result)
     assert result == [
         {
@@ -163,11 +160,11 @@ def test_batch_run_no_agent_reporters():  # noqa: D103
 
 
 def test_batch_run_single_core():  # noqa: D103
-    mesa.batch_run(MockModel, {}, number_processes=1, iterations=6)
+    batch_run(MockModel, {}, number_processes=1, iterations=6)
 
 
 def test_batch_run_unhashable_param():  # noqa: D103
-    result = mesa.batch_run(
+    result = batch_run(
         MockModel,
         {
             "n_agents": 2,
