@@ -4,6 +4,7 @@ https://github.com/projectmesa/mesa-examples/blob/main/examples/boltzmann_wealth
 """
 
 import mesa
+from mesa.datacollection import DataCollector
 
 
 def compute_gini(model):
@@ -44,7 +45,7 @@ class BoltzmannWealth(mesa.Model):
         self.num_agents = n
         self.grid = mesa.space.MultiGrid(width, height, True)
         self.schedule = mesa.time.RandomActivation(self)
-        self.datacollector = mesa.DataCollector(
+        self.datacollector = DataCollector(
             model_reporters={"Gini": compute_gini}, agent_reporters={"Wealth": "wealth"}
         )
         # Create agents
