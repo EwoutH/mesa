@@ -1,7 +1,6 @@
 """a simple version of the boltman wealth model"""
 
 import mesa
-from mesa.datacollection import DataCollector
 
 
 def compute_gini(model):
@@ -72,7 +71,7 @@ class MoneyModel(mesa.Model):
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(a, (x, y))
 
-        self.datacollector = DataCollector(
+        self.datacollector = mesa.DataCollector(
             model_reporters={"Gini": compute_gini}, agent_reporters={"Wealth": "wealth"}
         )
 

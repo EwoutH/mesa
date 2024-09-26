@@ -71,14 +71,13 @@ You'd add a data collector to the model like this:
 
 ```python
 import mesa
-from mesa.datacollection import DataCollector
 
 # ...
 
 class MyModel(mesa.Model):
     def __init__(self, n_agents):
         # ...
-        self.dc = DataCollector(model_reporters={"agent_count":
+        self.dc = mesa.DataCollector(model_reporters={"agent_count":
                                     lambda m: m.schedule.get_agent_count()},
                                 agent_reporters={"name": lambda a: a.name})
 
