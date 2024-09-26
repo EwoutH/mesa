@@ -8,6 +8,8 @@ import datetime
 import mesa.space as space
 import mesa.time as time
 from mesa.agent import Agent
+from mesa.batchrunner import batch_run
+from mesa.datacollection import DataCollector
 from mesa.model import Model
 
 __all__ = [
@@ -15,6 +17,9 @@ __all__ = [
     "Agent",
     "time",
     "space",
+    "DataCollector",
+    "batch_run",
+    "experimental",
 ]
 
 __title__ = "mesa"
