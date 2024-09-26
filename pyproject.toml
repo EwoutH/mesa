@@ -37,13 +37,15 @@ classifiers = [
 readme = "README.md"
 dependencies = [
   "numpy",
+  "pandas",
+  "tqdm",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 # User collections
-rec = ["mesa[network,viz,data,batch]"]
-all = ["mesa[network,viz,data,batch,dev,examples,docs]"]
+rec = ["mesa[network,viz]"]
+all = ["mesa[network,viz,dev,examples,docs]"]
 # Core dependencies
 network = [
   "networkx",
@@ -51,12 +53,6 @@ network = [
 viz = [
   "matplotlib",
   "solara",
-]
-data = [
-  "pandas",
-]
-batch = [
-  "tqdm",
 ]
 # Dev and CI stuff
 dev = [
@@ -73,7 +69,6 @@ examples = [
   "scipy",
 ]
 docs = [
-  "tqdm",
   "sphinx",
   "ipython",
   "pydata_sphinx_theme",
