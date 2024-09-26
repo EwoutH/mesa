@@ -103,7 +103,7 @@ To batch-run the model while varying, for example, the n_agents parameter, you'd
 import mesa
 
 parameters = {"n_agents": range(1, 20)}
-mesa.batchrunner.batch_run(
+mesa.batch_run(
     MyModel,
     parameters,
     max_steps=10,
