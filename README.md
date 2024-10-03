@@ -1,5 +1,6 @@
 # Mesa: Agent-based modeling in Python
 
+
 | | |
 | --- | --- |
 | CI/CD | [![GitHub Actions build status](https://github.com/projectmesa/mesa/workflows/build/badge.svg)](https://github.com/projectmesa/mesa/actions) [![Coverage status](https://codecov.io/gh/projectmesa/mesa/branch/main/graph/badge.svg)](https://codecov.io/gh/projectmesa/mesa) |
