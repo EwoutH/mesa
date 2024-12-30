@@ -1,25 +1,34 @@
-"""This method is for dynamically creating new agents (meta-agents).
+"""Meta agents - Agents that are composed of other agents.
 
-Meta-agents are defined as agents composed of existing agents.
+A meta agent is an agent that contains and manages other agents, while being an agent itself.
+It leverages Mesa's AgentSet functionality to manage its components efficiently.
 
-Meta-agents are created dynamically with a pointer to the model, name of the meta-agent,,
-iterable of agents to belong to the new meta-agents, any new functions for the meta-agent,
-any new attributes for the meta-agent, whether to retain sub-agent functions,
-whether to retain sub-agent attributes.
+Example uses:
+    - Organizations made up of individual agents
+    - Complex entities like vehicles made up of component agents
+    - Hierarchical structures where groups of agents act as a unit
 
-Examples of meta-agents:
-- An autonomous car where the subagents are the wheels, sensors,
-battery, computer etc. and the meta-agent is the car itself.
-- A company where the subagents are employees, departments, buildings, etc.
-- A city where the subagents are people, buildings, streets, etc.
+Basic usage:
+    ```python
+    class Robot(MetaAgent):
+        def __init__(self, model, components=None):
+            super().__init__(model, components)
+            # Compute robot properties from components
+            self.power = self.components.agg("power", sum)
 
-Currently meta-agents are restricted to one parent agent for each subagent/
-one meta-agent per subagent.
+    # Create robot from components
+    robot = Robot(model, components={engine, wheel1, wheel2})
 
-Goal is to assess usage and expand functionality.
+    # Add/remove components
+    robot.add_component(sensor)
+    robot.remove_component(wheel1)
 
+    # Use AgentSet methods on components
+    powerful_components = robot.components.select(lambda a: a.power > 10)
+    robot.components.do("activate")
+    ```
 """
 
-from .meta_agents import create_meta_agent
+from mesa.experimental.meta_agents.meta_agents import MetaAgent
 
-__all__ = ["create_meta_agent"]
+__all__ = ["MetaAgent"]
