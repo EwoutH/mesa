@@ -2,10 +2,9 @@
 
 import random
 
-from mesa.time import RandomActivation
-
 from mesa import Agent, Model
 from mesa.space import MultiGrid
+from mesa.visualization import SpaceRenderer
 
 
 class TestAgent(Agent):
@@ -21,23 +20,21 @@ class TestAgent(Agent):
 class TestModel(Model):
     """Model containing 10,000 randomly moving agents."""
 
-    def __init__(self, n: int = 10_000, width: int = 100, height: int = 100) -> None:
+    def __init__(self, n: int = 100, width: int = 100, height: int = 100) -> None:
         """Initialize the test model with N agents on a grid."""
         super().__init__()
         self.num_agents = n
         self.grid = MultiGrid(width, height, torus=True)
-        self.schedule = RandomActivation(self)
 
         for _ in range(self.num_agents):
             agent = TestAgent(self)
-            self.schedule.add(agent)
             x = random.randrange(self.grid.width)
             y = random.randrange(self.grid.height)
             self.grid.place_agent(agent, (x, y))
 
     def step(self) -> None:
         """Advance the model by one step."""
-        self.schedule.step()
+        self.agents.shuffle_do("step")
 
 
 def agent_portrayal(agent: TestAgent) -> dict:
@@ -53,9 +50,10 @@ if __name__ == "__main__":
     from mesa.visualization.solara_viz import SolaraViz
 
     model = TestModel()
+    renderer = SpaceRenderer(model=model, backend="matplotlib").render(agent_portrayal=agent_portrayal)
 
     page = SolaraViz(
         model,
         visualization_description="10,000 Agent Baseline Benchmark",
-        agent_portrayal=agent_portrayal,
+        renderer=renderer
     )
