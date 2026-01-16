@@ -9,6 +9,7 @@ from __future__ import annotations
 import random
 import sys
 from collections.abc import Callable, Sequence
+import warnings
 
 # mypy
 from typing import Any
@@ -99,6 +100,9 @@ class Model[A: Agent]:
         # Add timeflow components
         self._scheduler = Scheduler(self)
         self._run_control = RunControl(self, self._scheduler)
+        self._in_run_mode = False
+        # Track if we've initialized auto-stepping
+        self._step_auto_scheduled = False
 
         # check if `scenario` is provided
         # and if so, whether rng is the same or not
@@ -154,34 +158,61 @@ class Model[A: Agent]:
             [], random=self.random
         )  # an agenset with all agents
 
-    def _wrapped_step(self, *args: Any, **kwargs: Any) -> None:
-        """Automatically increments time and steps after calling the user's step method."""
-        # Automatically increment step counter
-        self.steps += 1
+    def _wrapped_step(self, *args, **kwargs):
+        """Wrapper that handles both manual and automatic step calls."""
 
-        # Schedule the user's step method to run at the next time unit
-        # Only auto-increment time if no simulator is controlling it
-        if self._simulator is None:
-            self._scheduler.schedule_at(
-                callback=self._user_step,
-                time=self.time + 1,
-                priority=Priority.HIGH,
-                args=args,
-                kwargs=kwargs,
+        # If called manually (not from run_*), warn but use run_for(1)
+        if not self._in_run_mode:
+            warnings.warn(
+                "Calling model.step() directly to progress time is deprecated. "
+                "Use model.run_for(1) instead. "
+                "In future versions, step() will be a callback method only.",
+                FutureWarning,
+                stacklevel=2
             )
 
-            _mesa_logger.info(
-                f"calling model.step for step {self.steps} at time {self.time + 1}"
-            )
+            # Increment steps counter
+            self.steps += 1
 
-            # Run until that scheduled event completes
-            self.run_for(1)
+            if self._simulator is None:
+                # Schedule THIS step execution
+                self._scheduler.schedule_at(
+                    callback=self._user_step,
+                    time=self.time + 1,
+                    priority=Priority.HIGH,
+                    args=args,
+                    kwargs=kwargs
+                )
+
+                # Mark that we've already scheduled step (prevent auto-schedule in run_for)
+                self._step_auto_scheduled = True
+
+                # Execute it
+                self.run_for(1)
+            else:
+                # Simulator controls time
+                self._user_step(*args, **kwargs)
         else:
-            # Simulator is controlling time, just call the method
-            _mesa_logger.info(
-                f"calling model.step for step {self.steps} at time {self.time}"
-            )
+            # Called from run_* methods via scheduler
+            self.steps += 1
+            _mesa_logger.info(f"calling model.step for step {self.steps} at time {self.time}")
             self._user_step(*args, **kwargs)
+
+    def _auto_schedule_step(self):
+        """Schedule the next step() if user has overridden it."""
+        next_step_time = int(self.time) + 1
+        self._scheduler.schedule_at(
+            callback=self._execute_step_callback,
+            time=next_step_time,
+            priority=Priority.HIGH
+        )
+
+    def _execute_step_callback(self):
+        """Called by scheduler - executes step and reschedules."""
+        self._in_run_mode = True
+        self.step()  # Call wrapped step, but _in_run_mode=True
+        self._in_run_mode = False
+        self._auto_schedule_step()  # Reschedule for next time
 
     @property
     def agents(self) -> AgentSet[A]:

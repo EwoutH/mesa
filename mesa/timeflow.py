@@ -171,6 +171,11 @@ class RunControl:
             # Run until time reaches 100
             model.run_until(100)
         """
+        # On first run_* call, auto-schedule step
+        if not self.model._step_auto_scheduled:
+            self.model._step_auto_scheduled = True
+            self.model._auto_schedule_step()
+
         while not self.scheduler.event_list.is_empty():
             try:
                 event = self.scheduler.event_list.pop_event()

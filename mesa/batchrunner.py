@@ -202,8 +202,7 @@ def _model_run_func(
     run_id, iteration, kwargs = run
 
     model = model_cls(**kwargs)
-    while model.running and model.steps < max_steps:
-        model.step()
+    model.run_for(max_steps)
 
     data = []
 
