@@ -48,34 +48,22 @@ class Citizen(EpsteinAgent):
             rebellion
     """
 
-    def __init__(
-        self, model, regime_legitimacy, threshold, vision, arrest_prob_constant
-    ):
+    def __init__(self, model):
         """
         Create a new Citizen.
         Args:
             model: the model to which the agent belongs
-            hardship: Agent's 'perceived hardship (i.e., physical or economic
-                privation).' Exogenous, drawn from U(0,1).
-            regime_legitimacy: Agent's perception of regime legitimacy, equal
-                across agents.  Exogenous.
-            risk_aversion: Exogenous, drawn from U(0,1).
-            threshold: if (grievance - (risk_aversion * arrest_probability)) >
-                threshold, go/remain Active
-            vision: number of cells in each direction (N, S, E and W) that
-                agent can inspect. Exogenous.
-            model: model instance
         """
         super().__init__(model)
         self.hardship = self.random.random()
         self.risk_aversion = self.random.random()
-        self.regime_legitimacy = regime_legitimacy
-        self.threshold = threshold
+        self.regime_legitimacy = self.model.scenario.legitimacy
+        self.threshold = self.model.scenario.active_threshold
         self.state = CitizenState.QUIET
-        self.vision = vision
+        self.vision = self.model.scenario.citizen_vision
         self.jail_sentence = 0
         self.grievance = self.hardship * (1 - self.regime_legitimacy)
-        self.arrest_prob_constant = arrest_prob_constant
+        self.arrest_prob_constant = self.model.scenario.arrest_prob_constant
         self.arrest_probability = None
 
         self.neighborhood = []
@@ -133,18 +121,16 @@ class Cop(EpsteinAgent):
             able to inspect
     """
 
-    def __init__(self, model, vision, max_jail_term):
+    def __init__(self, model):
         """
         Create a new Cop.
         Args:
             x, y: Grid coordinates
-            vision: number of cells in each direction (N, S, E and W) that
-                agent can inspect. Exogenous.
             model: model instance
         """
         super().__init__(model)
-        self.vision = vision
-        self.max_jail_term = max_jail_term
+        self.vision = self.model.scenario.cop_vision
+        self.max_jail_term = self.model.scenario.max_jail_term
 
     def step(self):
         """
