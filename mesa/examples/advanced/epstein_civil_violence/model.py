@@ -24,8 +24,12 @@ class MyScenario(Scenario):
     arrest_prob_constant: float = 2.3  # for arrest probability estimates
     movement: bool = True  # whether agents move
     max_iters: int = 1000  # maximum iterations
-    activation_order: Literal["Random", "Sequential"] = "Random" # "Random" or "Sequential"
-    grid_type: Literal["Von Neumann", "Moore"] = "Von Neumann" # "Von Neumann" or "Moore"
+    activation_order: Literal["Random", "Sequential"] = (
+        "Random"  # "Random" or "Sequential"
+    )
+    grid_type: Literal["Von Neumann", "Moore"] = (
+        "Von Neumann"  # "Von Neumann" or "Moore"
+    )
 
 
 class EpsteinCivilViolence(mesa.Model):
