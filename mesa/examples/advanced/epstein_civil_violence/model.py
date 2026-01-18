@@ -44,10 +44,9 @@ class EpsteinCivilViolence(mesa.Model):
         self,
         width=40,
         height=40,
-        seed=None,
         scenario:MyScenario|None=None,
     ):
-        super().__init__(seed=seed, scenario=scenario)
+        super().__init__(scenario=scenario)
 
         match self.scenario.grid_type:
             case "Moore":
