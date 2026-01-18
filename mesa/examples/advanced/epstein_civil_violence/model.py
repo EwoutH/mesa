@@ -41,7 +41,6 @@ class EpsteinCivilViolence(mesa.Model):
     Args:
         height: grid height
         width: grid width
-        seed: random seed for reproducibility
         scenario: Scenario object containing model parameters.
     """
 

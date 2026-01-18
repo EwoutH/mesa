@@ -3,7 +3,7 @@ from mesa.examples.advanced.epstein_civil_violence.agents import (
     CitizenState,
     Cop,
 )
-from mesa.examples.advanced.epstein_civil_violence.model import EpsteinCivilViolence
+from mesa.examples.advanced.epstein_civil_violence.model import EpsteinCivilViolence, MyScenario
 from mesa.visualization import (
     Slider,
     SolaraViz,
@@ -75,7 +75,7 @@ chart_component = make_plot_component(
     {state.name.lower(): agent_colors[state] for state in CitizenState}
 )
 
-epstein_model = EpsteinCivilViolence()
+epstein_model = EpsteinCivilViolence(scenario=MyScenario(rng=42))
 renderer = SpaceRenderer(epstein_model, backend="matplotlib").setup_agents(
     citizen_cop_portrayal
 )
