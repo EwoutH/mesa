@@ -13,23 +13,19 @@ from mesa.experimental.scenarios import Scenario
 
 
 class MyScenario(Scenario):
-    rng = (None,)  # Will use Model's seed if not specified
-    citizen_density: float = (0.7,)  # approximate % of cells occupied by citizens
-    cop_density: float = (0.074,)  # approximate % of cells occupied by cops
-    citizen_vision: int = (7,)  # number of cells citizen can inspect in each direction
-    cop_vision: int = (7,)  # number of cells cop can inspect in each direction
-    legitimacy: float = (0.8,)  # citizens' perception of regime legitimacy
-    max_jail_term: int = (1000,)  # maximum jail sentence
-    active_threshold: float = (0.1,)  # rebellion threshold
-    arrest_prob_constant: float = (2.3,)  # for arrest probability estimates
-    movement: bool = (True,)  # whether agents move
-    max_iters: int = (1000,)  # maximum iterations
-    activation_order: Literal["Random", "Sequential"] = (
-        "Random",
-    )  # "Random" or "Sequential"
-    grid_type: Literal["Von Neumann", "Moore"] = (
-        "Von Neumann",
-    )  # "Von Neumann" or "Moore"
+    rng = None  # Will use Model's seed if not specified
+    citizen_density: float = 0.7  # approximate % of cells occupied by citizens
+    cop_density: float = 0.074  # approximate % of cells occupied by cops
+    citizen_vision: int = 7  # number of cells citizen can inspect in each direction
+    cop_vision: int = 7  # number of cells cop can inspect in each direction
+    legitimacy: float = 0.8  # citizens' perception of regime legitimacy
+    max_jail_term: int = 1000  # maximum jail sentence
+    active_threshold: float = 0.1  # rebellion threshold
+    arrest_prob_constant: float = 2.3  # for arrest probability estimates
+    movement: bool = True  # whether agents move
+    max_iters: int = 1000  # maximum iterations
+    activation_order: Literal["Random", "Sequential"] = "Random" # "Random" or "Sequential"
+    grid_type: Literal["Von Neumann", "Moore"] = "Von Neumann" # "Von Neumann" or "Moore"
 
 
 class EpsteinCivilViolence(mesa.Model):
