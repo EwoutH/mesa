@@ -1,3 +1,5 @@
+from typing import Literal
+
 import mesa
 from mesa.discrete_space import OrthogonalMooreGrid, OrthogonalVonNeumannGrid  #
 from mesa.examples.advanced.epstein_civil_violence.agents import (
@@ -8,21 +10,21 @@ from mesa.examples.advanced.epstein_civil_violence.agents import (
 from mesa.experimental.scenarios import Scenario
 
 # Default scenario parameters
-default_scenario = Scenario(
+
+class MyScenario(Scenario):
     rng=None,  # Will use Model's seed if not specified
-    citizen_density=0.7,  # approximate % of cells occupied by citizens
-    cop_density=0.074,  # approximate % of cells occupied by cops
-    citizen_vision=7,  # number of cells citizen can inspect in each direction
-    cop_vision=7,  # number of cells cop can inspect in each direction
-    legitimacy=0.8,  # citizens' perception of regime legitimacy
-    max_jail_term=1000,  # maximum jail sentence
-    active_threshold=0.1,  # rebellion threshold
-    arrest_prob_constant=2.3,  # for arrest probability estimates
-    movement=True,  # whether agents move
-    max_iters=1000,  # maximum iterations
-    activation_order="Random",  # "Random" or "Sequential"
-    grid_type="Von Neumann",  # "Von Neumann" or "Moore"
-)
+    citizen_density: float = 0.7,  # approximate % of cells occupied by citizens
+    cop_density: float = 0.074,  # approximate % of cells occupied by cops
+    citizen_vision: int = 7,  # number of cells citizen can inspect in each direction
+    cop_vision: int = 7,  # number of cells cop can inspect in each direction
+    legitimacy: float = 0.8,  # citizens' perception of regime legitimacy
+    max_jail_term: int = 1000,  # maximum jail sentence
+    active_threshold: float = 0.1,  # rebellion threshold
+    arrest_prob_constant: float = 2.3,  # for arrest probability estimates
+    movement: bool = True,  # whether agents move
+    max_iters: int  = 1000,  # maximum iterations
+    activation_order: Literal["Random"|"Sequential"]="Random",  # "Random" or "Sequential"
+    grid_type: Literal["Von Neumann"|"Moore"] ="Von Neumann",  # "Von Neumann" or "Moore"
 
 
 class EpsteinCivilViolence(mesa.Model):
@@ -43,7 +45,7 @@ class EpsteinCivilViolence(mesa.Model):
         width=40,
         height=40,
         seed=None,
-        scenario=default_scenario,
+        scenario:MyScenario|None=None,
     ):
         super().__init__(seed=seed, scenario=scenario)
 
