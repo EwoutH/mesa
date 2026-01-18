@@ -56,7 +56,7 @@ class Citizen(EpsteinAgent):
         self.hardship = self.random.random()
         self.risk_aversion = self.random.random()
         self.state = CitizenState.QUIET
-        self.jail_sentence = 0
+        self.jail_sentence = self.scenario.jail_sentence
         self.grievance = self.hardship * (1 - self.scenario.legitimacy)
         self.arrest_probability = None
         self.neighborhood = []
