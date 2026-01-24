@@ -185,15 +185,13 @@ class Model[A: Agent, S: Scenario]:
 
         """
         while not self._event_list.is_empty():
-            try:
-                event = self._event_list.peek_ahead(1)[0]
-            except IndexError:
-                break
+            event = self._event_list.pop_event()
 
             if event.time > until:
+                # Put it back and stop
+                self._event_list.add_event(event)
                 break
 
-            self._event_list.pop_event()
             self.time = event.time
             event.execute()
 
