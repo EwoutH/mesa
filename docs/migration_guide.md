@@ -3,8 +3,62 @@ This guide contains breaking changes between major Mesa versions and how to reso
 
 Non-breaking changes aren't included, for those see our [Release history](https://github.com/mesa/mesa/releases).
 
-## Mesa 3.4.0
+## Mesa 3.5.0
+### Time advancement
+Mesa 3.5 introduces `run_for()` and `run_until()` as the new standard methods for advancing simulation time. These methods provide a clearer, more flexible API that works seamlessly with both agent-based models and discrete event simulations, replacing the pattern of calling `model.step()` in loops.
 
+Calling `model.step()` repeatedly to advance time and `model.run_model()` are deprecated and will be removed in Mesa 4.0.
+
+**Running for a duration:**
+```python
+# Old
+for _ in range(100):
+    model.step()
+
+# New
+model.run_for(100)  # Run for 100 time units
+```
+
+**Running until a target time:**
+```python
+# Old
+model.run_model()
+
+# New
+model.run_until(1000)  # Run until time reaches 1000
+```
+
+**Stopping after completing a timestep:**
+```python
+# Still works
+class MyModel(Model):
+    def step(self):
+        self.agents.shuffle_do("act")
+        self.datacollector.collect(self)
+
+        # Stop at the end of the step
+        if self.equilibrium_reached():
+            self.running = False
+
+model.run_for(1000)
+```
+
+**Stopping immediately from an event:**
+```python
+# New
+def critical_event_callback(self):
+    # Something critical happened
+    self.running = False  # Stop right now
+
+model.schedule_event(critical_event_callback, at=50)
+model.run_for(1000)  # Stops at event if triggered
+```
+
+**Note:** `model.running` is checked at natural checkpoints (once per event or timestep), so execution stops at the next opportunity after setting `running = False`.
+
+- Ref: [PR #XXXX](https://github.com/projectmesa/mesa/pull/XXXX)
+
+## Mesa 3.4.0
 ### batch run
 `batch_run` has been updated to offer explicit control over the random seeds that are used to run multiple replications of a given experiment. For this a new keyword argument, `rng` has been added and `iterations` will issue a `DeprecationWarning`. The new `rng` keyword argument takes a valid value for seeding or a list of valid values. If you want to run multiple iterations/replications of a given experiment, you need to pass the required seeds explicitly.
 

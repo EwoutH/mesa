@@ -173,8 +173,20 @@ class Model[A: Agent, S: Scenario]:
         )  # an agenset with all agents
 
     def _wrapped_step(self, *args: Any, **kwargs: Any) -> None:
-        """Advance time by one unit, processing any scheduled events."""
-        # Schedule step event if not already scheduled (first call or no simulator)
+        """Advance time by one unit, processing any scheduled events.
+
+        .. deprecated:: 3.5
+            Calling model.step() to advance time will be removed in Mesa 4.0.
+            Use model.run_for() or model.run_until() instead.
+        """
+        warnings.warn(
+            "Calling model.step() to advance time is deprecated and will be removed in Mesa 4.0. "
+            "Use model.run_for(duration) or model.run_until(time) instead."
+            "See https://mesa.readthedocs.io/latest/migration_guide.html#time-advancement",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
         if self._event_list.is_empty():
             self._schedule_step(self.time + 1)
         self._advance_time(self.time + 1)
@@ -184,9 +196,12 @@ class Model[A: Agent, S: Scenario]:
 
         Args:
             until: The time to advance to
-
         """
         while True:
+            # Check running once per event
+            if not self.running:
+                break
+
             try:
                 event = self._event_list.pop_event()
             except IndexError:
@@ -286,13 +301,36 @@ class Model[A: Agent, S: Scenario]:
     def run_model(self) -> None:
         """Run the model until the end condition is reached.
 
+        .. deprecated:: 3.5
+            model.run_model() will be removed in Mesa 4.0.
+            Use model.run_for() or model.run_until() instead.
+
         Overload as needed.
         """
+        warnings.warn(
+            "model.run_model() is deprecated and will be removed in Mesa 4.0. "
+            "Use model.run_until(time) or model.run_for(duration) instead."
+            "See https://mesa.readthedocs.io/latest/migration_guide.html#time-advancement",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         while self.running:
             self.step()
 
     def step(self) -> None:
         """A single step. Fill in here."""
+
+    def run_for(self, duration: float) -> None:
+        """Run the model for the specified duration."""
+        self._advance_time(self.time + duration)
+
+    def run_until(self, end_time: float) -> None:
+        """Run the model until the specified time."""
+        if end_time < self.time:
+            raise ValueError(
+                f"end_time ({end_time}) must be >= current time ({self.time})"
+            )
+        self._advance_time(end_time)
 
     def reset_randomizer(self, seed: int | None = None) -> None:
         """Reset the model random number generator.
