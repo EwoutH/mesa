@@ -1264,7 +1264,7 @@ def test_select_random_cell_empty_safe():
 
 
 def test_infinite_loop_on_full_grid():
-    """Test that select_random_empty_cell does not hang on a full grid."""
+    """Test that select_random_empty_cell raises ValueError with informative message on a full grid."""
     # 1. Create a small 2x2 model
     model = Model()
     grid = OrthogonalMooreGrid((2, 2), random=model.random)
@@ -1277,7 +1277,8 @@ def test_infinite_loop_on_full_grid():
     # 3. Verify grid is full
     assert len(grid.empties) == 0
 
-    with pytest.raises(IndexError):
+    # 4. Ensure ValueError is raised with a clear message
+    with pytest.raises(ValueError, match="Grid is completely full"):
         grid.select_random_empty_cell()
 
 

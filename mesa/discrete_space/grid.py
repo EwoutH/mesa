@@ -193,7 +193,13 @@ class Grid(DiscreteSpace[T], HasPropertyLayers):
                     return cell
 
         empty_coords = np.argwhere(self.empty.data)
-        random_coord = self.random.choice(empty_coords)
+        try:
+            random_coord = self.random.choice(empty_coords)
+        except IndexError as e:
+            raise ValueError(
+                "Grid is completely full. No empty cells available. "
+                "Cannot select a random empty cell."
+            ) from e
         return self._cells[tuple(random_coord)]
 
     def _connect_single_cell_nd(self, cell: T, offsets: list[tuple[int, ...]]) -> None:
