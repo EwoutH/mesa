@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import contextlib
 import inspect
 import itertools
 import threading
@@ -976,11 +977,23 @@ def UserInputs(user_params, on_change=None):
                 on_value=change_handler,
                 value=options.get("value"),
             )
+
         elif input_type == "InputText":
+
+            def input_change_handler(value, name=name):
+                converted = value
+                with contextlib.suppress(ValueError, TypeError):
+                    converted = int(value)
+                    on_change(name, converted)
+                    return
+                with contextlib.suppress(ValueError, TypeError):
+                    converted = float(value)
+                on_change(name, converted)
+
             solara.InputText(
                 label=label,
-                on_value=change_handler,
-                value=options.get("value"),
+                on_value=input_change_handler,
+                value=str(options.get("value")),
             )
         else:
             raise ValueError(f"{input_type} is not a supported input type")
