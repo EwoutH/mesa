@@ -447,3 +447,89 @@ def test_table_dataset():
 
     with pytest.raises(RuntimeError, match="has been closed"):
         _ = dataset.data
+
+    dataset = TableDataSet("new", fields=["a", "b", "c"])
+    with pytest.raises(ValueError, match="row is empty"):
+        dataset.add_row({})
+
+
+def test_add_row_does_not_mutate_input():
+    """add_row should not mutate the user's input."""
+    dataset = TableDataSet("test", fields=["a", "b", "c"])
+    row = {"a": 1, "b": 2, "c": 3}
+    original = row.copy()
+    dataset.add_row(row)
+    assert row == original
+
+
+def test_add_row_reuse_same_dict():
+    """Tests for resuablity of add_row."""
+    dataset = TableDataSet("t", fields=["a", "b"])
+
+    row = {"a": 1, "b": 2}
+
+    for i in range(1, 11):
+        row["a"] = row["a"] * i
+        row["b"] = row["b"] * i
+        dataset.add_row(row)  # should not raise any error
+
+    assert len(dataset.rows) == 10
+
+
+def test_agent_dataset_dirty_flag():
+    """Test optional manual dirty flag caching behavior in AgentDataSet."""
+
+    class MyAgent(Agent):
+        def __init__(self, model, value):
+            super().__init__(model)
+            self.wealth = value
+
+    class MyModel(Model):
+        def __init__(self):
+            super().__init__()
+            MyAgent.create_agents(self, 5, [1, 2, 3, 4, 5])
+
+    model = MyModel()
+
+    # Default behavior (no cache)
+    dataset = AgentDataSet("wealth", model.agents, fields="wealth")
+
+    first = dataset.data
+    second = dataset.data
+
+    assert first is not second
+    agent = model.agents.to_list()[0]
+    agent.wealth = 999
+
+    third = dataset.data
+    assert third[0]["wealth"] == 999
+
+    dataset.close()
+
+    # Opt-in dirty flag caching behavior
+    dataset = AgentDataSet(
+        "wealth_cached",
+        model.agents,
+        fields="wealth",
+        use_dirty_flag=True,
+    )
+
+    first = dataset.data
+    second = dataset.data
+    assert first is second
+
+    agent.wealth = 1234
+
+    third = dataset.data
+    assert third is first
+    assert third[0]["wealth"] != 1234
+
+    dataset.set_dirty_flag()
+    fourth = dataset.data
+
+    assert fourth is not first
+    assert fourth[0]["wealth"] == 1234
+
+    dataset.close()
+    with pytest.raises(RuntimeError):
+        dataset.set_dirty_flag()
