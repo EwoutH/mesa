@@ -3,21 +3,14 @@
 import pytest
 
 from mesa import Agent, Model
+from mesa.discrete_space.cell_agent import CellAgent
+from mesa.discrete_space.grid import OrthogonalMooreGrid
 from mesa.experimental.meta_agents.meta_agent import (
     MetaAgent,
     create_meta_agent,
     evaluate_combination,
     find_combinations,
 )
-
-# Optional imports for CellAgent tests
-try:
-    from mesa.discrete_space.cell_agent import CellAgent
-    from mesa.discrete_space.grid import OrthogonalMooreGrid
-
-    HAS_CELLAGENT = True
-except ImportError:
-    HAS_CELLAGENT = False
 
 
 class CustomAgent(Agent):
@@ -417,9 +410,6 @@ def test_create_meta_agent_repeated_instances_with_descriptor_parent():
     Verifies that initial_attributes are applied correctly for the second and subsequent
     instances of the same meta-agent class.
     """
-    if not HAS_CELLAGENT:
-        pytest.skip("CellAgent or OrthogonalMooreGrid not available")
-
     model = Model()
     grid = OrthogonalMooreGrid((10, 10), random=model.random)
 
@@ -456,9 +446,9 @@ def test_create_meta_agent_repeated_instances_with_descriptor_parent():
     # Second instance should also have correct spatial attributes (Path 2 fix)
     assert isinstance(swarm2, MetaAgent)
     assert isinstance(swarm2, CellAgent)
-    assert (
-        swarm2.cell == grid[5, 5]
-    ), "Path 2: Cell should be set correctly on second instance"
+    assert swarm2.cell == grid[5, 5], (
+        "Path 2: Cell should be set correctly on second instance"
+    )
 
     # First instance should be unaffected
     assert swarm1.cell == grid[2, 2]
