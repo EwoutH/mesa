@@ -2,6 +2,7 @@
 # ruff: noqa: D101, D102
 
 import gc
+import pickle
 from collections.abc import Callable
 from functools import partial
 from unittest.mock import MagicMock
@@ -432,6 +433,15 @@ class TestEventListPop:
         assert execution == list(range(5, 10))
 
 
+def _picklable_handler():
+    """Module-level callback, so events holding it can be pickled."""
+
+
+def _recount(el):
+    """Count the canceled events actually on the heap."""
+    return sum(1 for e in el._events if e.CANCELED)
+
+
 class TestEventListCompact:
     def test_compact_removes_canceled(self):
         el = EventList()
@@ -455,6 +465,193 @@ class TestEventListCompact:
             remaining.append(el.pop_event().time)
 
         assert remaining == [6, 7, 8, 9]
+
+    def test_compacts_when_tombstones_dominate(self, monkeypatch):
+        """Cancelling alone rebuilds the heap; no further push is needed."""
+        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 4)
+        el = EventList()
+        fn = MagicMock()
+
+        events = [Event(i, fn) for i in range(10)]
+        for e in events:
+            el.add_event(e)
+        for e in events:
+            e.cancel()
+
+        assert len(el._events) < 10
+        assert len(el) == 0
+        assert el._n_canceled == _recount(el)
+
+    def test_no_compaction_below_floor(self, monkeypatch):
+        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 64)
+        el = EventList()
+        fn = MagicMock()
+
+        events = [Event(i, fn) for i in range(10)]
+        for e in events:
+            el.add_event(e)
+        for e in events:
+            e.cancel()
+        el.add_event(Event(99, fn))
+
+        assert len(el._events) == 11
+        assert el._n_canceled == 10
+
+    def test_compaction_preserves_ordering(self, monkeypatch):
+        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 2)
+        el = EventList()
+        fn = MagicMock()
+
+        events = [Event(float(i), fn) for i in range(12)]
+        for e in events:
+            el.add_event(e)
+        for e in events[:8]:
+            e.cancel()
+
+        el.add_event(Event(0.5, fn))
+
+        drained = []
+        while not el.is_empty():
+            drained.append(el.pop_event().time)
+
+        assert drained == [0.5, 8.0, 9.0, 10.0, 11.0]
+
+
+class TestEventListCancelCount:
+    def test_len_excludes_canceled(self):
+        el = EventList()
+        fn = MagicMock()
+        events = [Event(i, fn) for i in range(5)]
+        for e in events:
+            el.add_event(e)
+
+        events[0].cancel()
+        events[3].cancel()
+
+        assert len(el) == 3
+        assert len(el._events) == 5
+        assert el._n_canceled == _recount(el)
+
+    def test_count_tracks_mixed_operations(self):
+        el = EventList()
+        fn = MagicMock()
+        events = [Event(i, fn) for i in range(12)]
+        for e in events:
+            el.add_event(e)
+
+        events[1].cancel()
+        events[2].cancel()
+        assert el._n_canceled == _recount(el)
+
+        el.pop_event()  # event 0, discards nothing
+        assert el._n_canceled == _recount(el)
+
+        el.pop_event()  # skips tombstones 1 and 2, returns event 3
+        assert el._n_canceled == _recount(el)
+
+        events[7].cancel()
+        el.compact()
+        assert el._n_canceled == _recount(el) == 0
+        assert len(el) == len(el._events)
+
+    def test_repeated_cancel_counts_once(self):
+        el = EventList()
+        event = Event(1.0, MagicMock())
+        el.add_event(event)
+
+        event.cancel()
+        event.cancel()
+
+        assert el._n_canceled == 1
+        assert len(el) == 0
+
+    def test_event_canceled_before_add_is_counted(self):
+        el = EventList()
+        event = Event(1.0, MagicMock())
+        event.cancel()
+
+        el.add_event(event)
+
+        assert el._n_canceled == 1
+        assert len(el) == 0
+
+    def test_cancel_after_pop_is_not_counted(self):
+        """A popped event has left the heap, so cancelling it must not count.
+
+        Model.schedule_event returns the Event to the caller, so cancelling one
+        that has already fired is reachable from user code.
+        """
+        el = EventList()
+        fn = MagicMock()
+        popped = Event(1.0, fn)
+        el.add_event(popped)
+        el.add_event(Event(2.0, fn))
+
+        assert el.pop_event() is popped
+        popped.cancel()
+
+        assert el._n_canceled == 0
+        assert len(el) == 1
+
+    def test_adding_popped_event_again_restores_counting(self):
+        el = EventList()
+        event = Event(1.0, MagicMock())
+        el.add_event(event)
+
+        el.pop_event()
+        el.add_event(event)
+        event.cancel()
+
+        assert el._n_canceled == 1
+        assert len(el) == 0
+
+    def test_clear_resets_count(self):
+        el = EventList()
+        event = Event(1.0, MagicMock())
+        el.add_event(event)
+        event.cancel()
+
+        el.clear()
+
+        assert el._n_canceled == 0
+        assert len(el) == 0
+
+    def test_is_empty_when_only_tombstones_remain(self):
+        el = EventList()
+        fn = MagicMock()
+        events = [Event(i, fn) for i in range(3)]
+        for e in events:
+            el.add_event(e)
+        for e in events:
+            e.cancel()
+
+        assert el.is_empty()
+        assert len(el._events) == 3
+
+    def test_cancel_after_list_is_collected(self):
+        el = EventList()
+        event = Event(1.0, MagicMock())
+        el.add_event(event)
+
+        del el
+        gc.collect()
+
+        event.cancel()  # must not raise
+        assert event.CANCELED
+
+    def test_pickle_roundtrip_keeps_counting(self):
+        el = EventList()
+        events = [Event(i, _picklable_handler) for i in range(4)]
+        for e in events:
+            el.add_event(e)
+        events[0].cancel()
+
+        restored = pickle.loads(pickle.dumps(el))  # noqa: S301
+
+        assert len(restored) == 3
+        live = next(e for e in restored._events if not e.CANCELED)
+        live.cancel()
+        assert restored._n_canceled == _recount(restored)
 
 
 # ---------------------------------------------------------------------------
