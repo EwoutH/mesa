@@ -23,6 +23,7 @@ from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyl
 from mesa.visualization.mpl_space_drawing import (
     _get_hexmesh,
     _to_numpy_argument_array,
+    collect_agent_data,
     draw_continuous_space,
     draw_hex_grid,
     draw_network,
@@ -148,6 +149,23 @@ def test_to_numpy_argument_array_preserves_tuple_markers():
     result = _to_numpy_argument_array("marker", [(3, 0, 0), (3, 0, 0)])
     assert result.shape == (2,)
     assert list(result) == [(3, 0, 0), (3, 0, 0)]
+
+
+def test_collect_agent_data_warns_once_for_dict_portrayal():
+    """The dict portrayal FutureWarning is emitted once per call, not per agent."""
+    model = Model(rng=42)
+    grid = OrthogonalMooreGrid((10, 10), torus=True, random=model.random, capacity=1)
+    for _ in range(10):
+        agent = CellAgent(model)
+        agent.cell = grid.select_random_empty_cell()
+
+    def dict_portrayal(agent):
+        return {"size": 10, "color": "tab:blue", "marker": "o"}
+
+    with pytest.warns(FutureWarning) as record:
+        collect_agent_data(grid, dict_portrayal)
+
+    assert len([w for w in record if issubclass(w.category, FutureWarning)]) == 1
 
 
 def test_draw_hex_grid():

@@ -375,6 +375,28 @@ def test_backend_get_agent_pos():
     assert (x, y) == (3, 4)
 
 
+@pytest.mark.parametrize("backend_cls", [MatplotlibBackend, AltairBackend])
+def test_backend_collect_agent_data_warns_once_for_dict_portrayal(backend_cls):
+    """The dict portrayal FutureWarning is emitted once per call, not per agent."""
+    backend = backend_cls(space_drawer=MagicMock())
+
+    class DummyAgent:
+        pos = (0, 0)
+        cell = types.SimpleNamespace(coordinate=(0, 0))
+
+    class DummySpace:
+        agents: ClassVar[list] = [DummyAgent() for _ in range(5)]
+
+    def agent_portrayal_dict(agent):
+        return {"size": 5, "color": "red", "marker": "o"}
+
+    with pytest.warns(FutureWarning) as record:
+        data = backend.collect_agent_data(DummySpace(), agent_portrayal_dict)
+
+    assert len([w for w in record if issubclass(w.category, FutureWarning)]) == 1
+    assert data["loc"].shape[0] == 5
+
+
 def test_backends_handle_errors():
     """Test error handling scenarios for invalid agent/propertylayer data."""
     mb = MatplotlibBackend(space_drawer=MagicMock())
