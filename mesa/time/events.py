@@ -434,8 +434,6 @@ class EventList:
     Attributes:
         COMPACTION_RATIO (float): Fraction of canceled events above which the heap is
             rebuilt, which also bounds the peak heap at L / (1 - COMPACTION_RATIO)
-        COMPACTION_FLOOR (int): Minimum number of canceled events before compaction is
-            considered, so that small heaps are not rebuilt constantly
 
     Notes:
         An event belongs to one event list at a time. Adding the same event to a
@@ -444,7 +442,6 @@ class EventList:
     """
 
     COMPACTION_RATIO: float = 0.25
-    COMPACTION_FLOOR: int = 64
 
     def __init__(self):
         """Initialize an event list."""
@@ -500,10 +497,7 @@ class EventList:
         """
         self._n_canceled += 1
 
-        if (
-            self._n_canceled > self.COMPACTION_FLOOR
-            and self._n_canceled > len(self._events) * self.COMPACTION_RATIO
-        ):
+        if self._n_canceled > len(self._events) * self.COMPACTION_RATIO:
             self.compact()
 
     def peek_ahead(self, n: int = 1) -> list[Event]:

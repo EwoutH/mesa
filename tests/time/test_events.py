@@ -443,7 +443,10 @@ def _recount(el):
 
 
 class TestEventListCompact:
-    def test_compact_removes_canceled(self):
+    def test_compact_removes_canceled(self, monkeypatch):
+        # ratio 1.0 needs more dead events than the heap holds, so automatic
+        # compaction never fires and compact() can be exercised on its own
+        monkeypatch.setattr(EventList, "COMPACTION_RATIO", 1.0)
         el = EventList()
         fn = MagicMock()
 
@@ -466,9 +469,8 @@ class TestEventListCompact:
 
         assert remaining == [6, 7, 8, 9]
 
-    def test_compacts_when_tombstones_dominate(self, monkeypatch):
+    def test_compacts_when_tombstones_dominate(self):
         """Cancelling alone rebuilds the heap; no further push is needed."""
-        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 4)
         el = EventList()
         fn = MagicMock()
 
@@ -482,26 +484,10 @@ class TestEventListCompact:
         assert len(el) == 0
         assert el._n_canceled == _recount(el)
 
-    def test_no_compaction_below_floor(self, monkeypatch):
-        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 64)
-        el = EventList()
-        fn = MagicMock()
-
-        events = [Event(i, fn) for i in range(10)]
-        for e in events:
-            el.add_event(e)
-        for e in events:
-            e.cancel()
-        el.add_event(Event(99, fn))
-
-        assert len(el._events) == 11
-        assert el._n_canceled == 10
-
     @pytest.mark.parametrize("ratio", [0.1, 0.25, 0.5])
     def test_ratio_bounds_the_peak_heap(self, monkeypatch, ratio):
         """The ratio caps the heap at L / (1 - ratio)."""
         monkeypatch.setattr(EventList, "COMPACTION_RATIO", ratio)
-        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 0)
         el = EventList()
         fn = MagicMock()
 
@@ -519,8 +505,7 @@ class TestEventListCompact:
 
         assert peak <= 100 / (1 - ratio) + 1
 
-    def test_compaction_preserves_ordering(self, monkeypatch):
-        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 2)
+    def test_compaction_preserves_ordering(self):
         el = EventList()
         fn = MagicMock()
 
@@ -540,6 +525,15 @@ class TestEventListCompact:
 
 
 class TestEventListCancelCount:
+    @pytest.fixture(autouse=True)
+    def _no_automatic_compaction(self, monkeypatch):
+        """Observe the count itself; rebuilding is TestEventListCompact's job.
+
+        A ratio of 1.0 would need more canceled events than the heap holds, so
+        the trigger never fires and tombstones stay put to be counted.
+        """
+        monkeypatch.setattr(EventList, "COMPACTION_RATIO", 1.0)
+
     def test_len_excludes_canceled(self):
         el = EventList()
         fn = MagicMock()
