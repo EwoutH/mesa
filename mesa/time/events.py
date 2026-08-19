@@ -146,7 +146,7 @@ class Event:
         if self._owner is not None:
             owner = self._owner()
             if owner is not None:
-                owner._note_cancellation()
+                owner._on_cancellation()
 
     def __lt__(self, other: Event) -> bool:
         """Define a total ordering for events to be used by the heapq."""
@@ -432,8 +432,10 @@ class EventList:
     itself once they dominate. That count also makes len() an O(1) operation.
 
     Attributes:
-        COMPACTION_RATIO (float): Fraction of canceled events above which the heap is rebuilt
-        COMPACTION_FLOOR (int): Minimum number of canceled events before compaction is considered
+        COMPACTION_RATIO (float): Fraction of canceled events above which the heap is
+            rebuilt, which also bounds the peak heap at L / (1 - COMPACTION_RATIO)
+        COMPACTION_FLOOR (int): Minimum number of canceled events before compaction is
+            considered, so that small heaps are not rebuilt constantly
 
     Notes:
         An event belongs to one event list at a time. Adding the same event to a
@@ -441,7 +443,7 @@ class EventList:
 
     """
 
-    COMPACTION_RATIO: float = 0.5
+    COMPACTION_RATIO: float = 0.25
     COMPACTION_FLOOR: int = 64
 
     def __init__(self):
@@ -475,13 +477,21 @@ class EventList:
         Args:
             event (Event): The event to be added
 
+        Raises:
+            ValueError: If the event has already been canceled. Cancellation is
+                terminal, so such an event could never execute.
+
         """
-        event._owner = self._self_ref
         if event.CANCELED:
-            self._n_canceled += 1
+            raise ValueError(
+                "Cannot add a canceled event to an event list. Cancellation is "
+                "terminal, so the event would never execute."
+            )
+
+        event._owner = self._self_ref
         heappush(self._events, event)
 
-    def _note_cancellation(self) -> None:
+    def _on_cancellation(self) -> None:
         """Record a canceled event, compacting the heap once they dominate it.
 
         Only cancellation raises the share of canceled events, since adding an

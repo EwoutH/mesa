@@ -497,6 +497,28 @@ class TestEventListCompact:
         assert len(el._events) == 11
         assert el._n_canceled == 10
 
+    @pytest.mark.parametrize("ratio", [0.1, 0.25, 0.5])
+    def test_ratio_bounds_the_peak_heap(self, monkeypatch, ratio):
+        """The ratio caps the heap at L / (1 - ratio)."""
+        monkeypatch.setattr(EventList, "COMPACTION_RATIO", ratio)
+        monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 0)
+        el = EventList()
+        fn = MagicMock()
+
+        live = [Event(float(i), fn) for i in range(100)]
+        for event in live:
+            el.add_event(event)
+
+        peak = len(el._events)
+        for i in range(600):
+            live[i % 100].cancel()
+            replacement = Event(1000.0 + i, fn)
+            el.add_event(replacement)
+            live[i % 100] = replacement
+            peak = max(peak, len(el._events))
+
+        assert peak <= 100 / (1 - ratio) + 1
+
     def test_compaction_preserves_ordering(self, monkeypatch):
         monkeypatch.setattr(EventList, "COMPACTION_FLOOR", 2)
         el = EventList()
@@ -565,15 +587,16 @@ class TestEventListCancelCount:
         assert el._n_canceled == 1
         assert len(el) == 0
 
-    def test_event_canceled_before_add_is_counted(self):
+    def test_adding_a_canceled_event_raises(self):
         el = EventList()
         event = Event(1.0, MagicMock())
         event.cancel()
 
-        el.add_event(event)
+        with pytest.raises(ValueError, match="Cannot add a canceled event"):
+            el.add_event(event)
 
-        assert el._n_canceled == 1
-        assert len(el) == 0
+        assert len(el._events) == 0
+        assert el._n_canceled == 0
 
     def test_cancel_after_pop_is_not_counted(self):
         """A popped event has left the heap, so cancelling it must not count.
