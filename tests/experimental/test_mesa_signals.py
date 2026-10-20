@@ -830,6 +830,73 @@ def test_ObservableList_slice_delitem():
     )
 
 
+def test_observable_list_mutation():
+    """Test that in-place mutations of ObservableList trigger computed property updates."""
+
+    class ListAgent(Agent, HasEmitters):
+        inventory = ObservableList()
+
+        def __init__(self, model):
+            super().__init__(model)
+            self.inventory = [1, 2]
+
+        @computed_property
+        def inventory_size(self):
+            return len(self.inventory)
+
+    model = Model(rng=42)
+    agent = ListAgent(model)
+
+    # Initial access builds the dependency graph and caches the value
+    assert agent.inventory_size == 2
+
+    # In-place mutation
+    # Append
+    agent.inventory.append(3)
+    assert agent.inventory_size == 3
+
+    # Remove
+    agent.inventory.remove(1)
+    assert agent.inventory_size == 2
+
+    state = agent._computed_inventory_size
+    value = state.parents[agent]["inventory"]
+    assert value is None
+
+
+def test_observable_list_out_of_range_negative_index():
+    """Test that out-of-range negative indices raise IndexError like a plain list.
+
+    Previously the index was wrapped once (index + len) without a bounds check,
+    so e.g. ``lst[-4]`` on a 3-element list silently targeted ``lst[-1]``.
+    """
+
+    class ListAgent(Agent, HasEmitters):
+        inventory = ObservableList()
+
+        def __init__(self, model):
+            super().__init__(model)
+            self.inventory = [1, 2, 3]
+
+    model = Model(rng=42)
+    agent = ListAgent(model)
+    handler = Mock()
+    agent.observe("inventory", ALL, handler)
+
+    with pytest.raises(IndexError):
+        agent.inventory[-4] = 99
+    with pytest.raises(IndexError):
+        del agent.inventory[-4]
+
+    assert list(agent.inventory) == [1, 2, 3]
+    handler.assert_not_called()
+
+    # in-range negative indices still work
+    agent.inventory[-1] = 30
+    del agent.inventory[-3]
+    assert list(agent.inventory) == [2, 30]
+
+
 def test_all_sentinel():
     """Test the ALL sentinel."""
     import pickle  # noqa: PLC0415
