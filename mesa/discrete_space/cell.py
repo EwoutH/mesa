@@ -139,15 +139,13 @@ class Cell:
             agent (CellAgent): agent to add to this Cell
 
         """
-        n = len(self._agents)
-        self.empty = False
-
-        if self.capacity is not None and n >= self.capacity:
+        if self.capacity is not None and len(self._agents) >= self.capacity:
             raise Exception(
                 "ERROR: Cell is full"
             )  # FIXME we need MESA errors or a proper error
 
         self._agents.append(agent)
+        self.empty = False
 
     def remove_agent(self, agent: CellAgent) -> None:
         """Removes an agent from the cell.
