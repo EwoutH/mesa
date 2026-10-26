@@ -1326,6 +1326,57 @@ def test_fixed_agent_removal_state():
     assert agent.cell is None
 
 
+def test_fixed_agent_assign_none_while_unplaced():
+    """Assigning None to an unplaced fixed agent does nothing, it can still be placed later."""
+    model = Model()
+    cell = Cell((1,), capacity=None, random=random.Random())
+    agent = FixedAgent(model)
+
+    agent.cell = None
+    assert agent.cell is None
+
+    agent.cell = cell
+    assert agent.cell is cell
+    assert agent in cell.agents
+
+
+def test_fixed_agent_remove_unplaced_raises():
+    """Removing an unplaced fixed agent raises and leaves the agent untouched."""
+    model = Model()
+    agent = FixedAgent(model)
+
+    with pytest.raises(ValueError, match="not in a cell"):
+        agent.remove()
+
+    # the check runs before anything is removed
+    assert agent in model.agents
+    assert agent.cell is None
+
+
+def test_fixed_agent_remove_twice_raises():
+    """A second remove() raises, since the agent is no longer in a cell."""
+    model = Model()
+    cell = Cell((1,), capacity=None, random=random.Random())
+    agent = FixedAgent(model)
+    agent.cell = cell
+
+    agent.remove()
+    with pytest.raises(ValueError, match="not in a cell"):
+        agent.remove()
+
+
+def test_fixed_agent_cannot_unassign_after_placement():
+    """Once placed, a fixed agent can't be set back to None."""
+    model = Model()
+    cell = Cell((1,), capacity=None, random=random.Random())
+    agent = FixedAgent(model)
+    agent.cell = cell
+
+    with pytest.raises(ValueError, match="Cannot move agent"):
+        agent.cell = None
+    assert agent.cell is cell
+
+
 def test_pickling_cell():
     """Test pickling of a Cell."""
     cell = Cell((1,), capacity=1, random=random.Random(42))
