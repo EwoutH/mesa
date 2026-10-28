@@ -104,7 +104,7 @@ agent = ContinuousSpaceAgent(space, model)
 agent.position = (new_x, new_y)
 ```
 
-> **Note:** The legacy `mesa.space` module (including `MultiGrid`, `SingleGrid`, `ContinuousSpace`, etc.) has been removed. Use `mesa.discrete_space` and `mesa.experimental.continuous_space` instead.
+> **Note:** The legacy `mesa.space` module (including `MultiGrid`, `SingleGrid`, `ContinuousSpace`, etc.) is in maintenance-only mode and will be removed in Mesa 4.0. For new projects, use `mesa.discrete_space` and `mesa.experimental.continuous_space` instead.
 
 ### Time Advancement and Agent Activation
 
