@@ -85,7 +85,7 @@ def test_matplotlib_backend_collects_partial_edgecolors(edgecolor):
     mb = MatplotlibBackend(space_drawer=MagicMock())
 
     class DummyAgent:
-        position = (0, 0)
+        pos = (0, 0)
         cell = types.SimpleNamespace(coordinate=(0, 0))
 
         def __init__(self, kind):
@@ -118,7 +118,7 @@ def test_matplotlib_backend_collects_tuple_markers_without_flattening():
     mb = MatplotlibBackend(space_drawer=MagicMock())
 
     class DummyAgent:
-        position = (0, 0)
+        pos = (0, 0)
         cell = types.SimpleNamespace(coordinate=(0, 0))
 
     class DummySpace:

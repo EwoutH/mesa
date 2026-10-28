@@ -1,6 +1,7 @@
 """tests for matplotlib components."""
 
 import networkx as nx
+import pytest
 from matplotlib.figure import Figure
 
 from mesa import Agent, Model
@@ -20,10 +21,9 @@ from mesa.space import (
 )
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
 from mesa.visualization.mpl_space_drawing import (
-    draw_continuous_space,
     _get_hexmesh,
     _to_numpy_argument_array,
-    collect_agent_data,
+    draw_continuous_space,
     draw_hex_grid,
     draw_network,
     draw_orthogonal_grid,
@@ -345,7 +345,6 @@ def test_draw_property_layers():
     fig = Figure()
     ax = fig.add_subplot()
     draw_property_layers(grid, propertylayer_portrayal, ax)
-    draw_property_layers(grid, property_layer_portrayal, ax)
 
 
 def test_get_hexmesh_returns_immutable_shared_safe_mesh():

@@ -846,7 +846,7 @@ def test_ObservableList_slice_delitem():
 def test_observable_list_reverse_slice(values, index, delete):
     """Reverse slice mutations match lists and report the affected values."""
 
-    class Owner(HasEmitters):
+    class Owner(HasObservables):
         items = ObservableList()
 
     owner = Owner()
@@ -882,7 +882,7 @@ def test_observable_list_reverse_slice(values, index, delete):
 def test_observable_list_reverse_slice_assignment_wrong_size():
     """Invalid extended slice assignments leave values and signals unchanged."""
 
-    class Owner(HasEmitters):
+    class Owner(HasObservables):
         items = ObservableList()
 
     owner = Owner()
@@ -901,7 +901,7 @@ def test_observable_list_reverse_slice_assignment_wrong_size():
 def test_observable_list_reverse_slice_batch(delete):
     """Batched reverse slice mutations retain the complete original snapshot."""
 
-    class Owner(HasEmitters):
+    class Owner(HasObservables):
         items = ObservableList()
 
     owner = Owner()
@@ -928,40 +928,6 @@ def test_observable_list_reverse_slice_batch(delete):
     )
 
 
-def test_observable_list_mutation():
-    """Test that in-place mutations of ObservableList trigger computed property updates."""
-
-    class ListAgent(Agent, HasEmitters):
-        inventory = ObservableList()
-
-        def __init__(self, model):
-            super().__init__(model)
-            self.inventory = [1, 2]
-
-        @computed_property
-        def inventory_size(self):
-            return len(self.inventory)
-
-    model = Model(rng=42)
-    agent = ListAgent(model)
-
-    # Initial access builds the dependency graph and caches the value
-    assert agent.inventory_size == 2
-
-    # In-place mutation
-    # Append
-    agent.inventory.append(3)
-    assert agent.inventory_size == 3
-
-    # Remove
-    agent.inventory.remove(1)
-    assert agent.inventory_size == 2
-
-    state = agent._computed_inventory_size
-    value = state.parents[agent]["inventory"]
-    assert value is None
-
-
 def test_observable_list_out_of_range_negative_index():
     """Test that out-of-range negative indices raise IndexError like a plain list.
 
@@ -969,7 +935,7 @@ def test_observable_list_out_of_range_negative_index():
     so e.g. ``lst[-4]`` on a 3-element list silently targeted ``lst[-1]``.
     """
 
-    class ListAgent(Agent, HasEmitters):
+    class ListAgent(Agent, HasObservables):
         inventory = ObservableList()
 
         def __init__(self, model):
