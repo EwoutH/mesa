@@ -198,10 +198,13 @@ class VoronoiGrid(DiscreteSpace):
 
         Args:
             centroids_coordinates: coordinates of centroids to build the tessellation space
-            capacity (int | Callable): capacity of the cells in the discrete space, or a
-                callable computing the (int) capacity of a cell from its (float) polygon area
+            capacity (int | None): capacity of the cells in the discrete space. If None,
+                the capacity of each cell is derived from its polygon area
+                using capacity_function
             random (Random): random number generator
             cell_klass (type[Cell]): type of cell class
+            capacity_function (Callable): function computing the (int) capacity of a cell
+                from its (float) polygon area, only used when capacity is None
 
         """
         super().__init__(capacity=capacity, random=random, cell_klass=cell_klass)
@@ -332,4 +335,6 @@ class VoronoiGrid(DiscreteSpace):
             self._cells[region].properties["polygon"] = polygon
             polygon_area = self._compute_polygon_area(polygon)
             self._cells[region].properties["area"] = polygon_area
-            self._cells[region].capacity = self.capacity_function(polygon_area)
+            # Only derive capacity from the area when no explicit capacity was given
+            if self.capacity is None:
+                self._cells[region].capacity = self.capacity_function(polygon_area)

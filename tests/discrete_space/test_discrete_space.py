@@ -1446,3 +1446,21 @@ def test_radius_exceeds_reachable_cells():
 
     # Should return all reachable cells (99, since we exclude center by default)
     assert len(neighbors) == 99
+
+
+def test_voronoi_explicit_capacity_is_preserved():
+    """An explicit capacity is not overwritten by the area-based capacity function."""
+    centroids = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0], [1.5, 1.0], [0.0, 2.0], [1.0, 2.0]]
+    grid = VoronoiGrid(centroids, capacity=5, random=random.Random(42))
+    for cell in grid._cells.values():
+        assert cell.capacity == 5
+
+
+def test_voronoi_default_capacity_derived_from_area():
+    """Without an explicit capacity, capacity_function derives it from the area."""
+    centroids = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0], [1.5, 1.0], [0.0, 2.0], [1.0, 2.0]]
+    grid = VoronoiGrid(
+        centroids, random=random.Random(42), capacity_function=lambda area: 10
+    )
+    for cell in grid._cells.values():
+        assert cell.capacity == 10
