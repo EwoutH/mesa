@@ -80,7 +80,7 @@ A recorded video of this process is [available here](https://youtu.be/JE44jkegmn
 ### Patch releases
 A patch release is tagged from `main` if `main` contains no breaking or major changes since the last release; then follow the steps above.
 
-Once `main` has moved on to work for the next feature or major release, patch releases backport fixes from `main` to the current stable series. They are then made from the `X.Y.x-maintenance` branch (for example `3.5.x-maintenance`), as described here. Which PRs qualify is decided by the [backport policy](#decisions-releases).
+Once `main` has moved on to work for the next feature or major release, patch releases backport fixes from `main` to the current stable series. They are then made from the `X.Y.x-maintenance` branch (for example `3.5.x-maintenance`), as described here. Which PRs qualify is decided by the [backport policy](decisions.md#releases-and-documentation).
 
 1. **Pick the PRs.** Start from PRs labelled [`backport-candidate`](https://github.com/mesa/mesa/pulls?q=is%3Apr+is%3Amerged+label%3Abackport-candidate), then go through everything else merged into `main` since the last patch release, for example with `gh pr list --repo mesa/mesa --base main --state merged --search "merged:>=YYYY-MM-DD" --limit 300`. Select the PRs that fit the backport policy. Skip anything that depends on work only on `main`.
 2. **Cherry-pick.** Create a branch from the maintenance branch and cherry-pick the selected commits with `git cherry-pick -x`, oldest first, so each commit records where it came from. `main` squash-merges, so a PR is usually one commit. To find the PR for a commit, use `gh api repos/mesa/mesa/commits/<sha>/pulls --jq '.[].number'`.
