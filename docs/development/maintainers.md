@@ -65,7 +65,7 @@ To create a new release, follow these steps:
 1. Ensure all pull requests (PRs) have a clear title and are labeled with at least one label. Check [this link](https://github.com/mesa/mesa/pulls?q=is%3Apr+is%3Amerged+no%3Alabel+merged%3A%3E%3D2024-03-01+) to see if all PRs are labeled. These labels will be used when drafting the changelog using the [`.github/release.yml`](https://github.com/mesa/mesa/blob/main/.github/release.yml) configuration.
 2. Navigate to the [Releases](https://github.com/mesa/mesa/releases) section in the GitHub UI and click the _Draft a new release_ button.
 3. Specify the upcoming tag in the _Choose a tag_ and _Release title_ fields (e.g., `v3.0.0`).
-   - For pre-releases, add a `a`, `b` or `rc` and a number behind the version tag (see [Versioning](https://packaging.python.org/en/latest/discussions/versioning/)), and check the box _Set as a pre-release_.
+   - For pre-releases, add a `a`, `b`, or `rc` and a number behind the version tag (see [Versioning](https://packaging.python.org/en/latest/discussions/versioning/)), and check the box _Set as a pre-release_.
 4. Use the _Generate release notes_ button to automatically create release notes. Review them carefully for accuracy, and update labels and edit PR titles if necessary (step 1).
 5. Write a _Highlights_ section summarizing the most important features or changes in this release.
 6. Copy the release notes and save them by clicking the grey _Save draft_ button.

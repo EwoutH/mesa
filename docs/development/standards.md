@@ -1,4 +1,4 @@
-# Code, test and documentation standards
+# Code, test, and documentation standards
 
 Conventions that apply across Mesa. When in doubt, follow the surrounding code.
 
@@ -25,7 +25,7 @@ Conventions that apply across Mesa. When in doubt, follow the surrounding code.
 
 - Use the model's RNG (`model.rng`, `model.random`). Pass it explicitly to components that don't have the model ([#2541](https://github.com/mesa/mesa/issues/2541), [#2978](https://github.com/mesa/mesa/issues/2978)).
 - Never let results depend on `set` iteration or other unordered sources; sort or use an ordered structure ([#3088](https://github.com/mesa/mesa/issues/3088)).
-- Models accept a seed and pass it to `Model`; examples and tutorials expose it so readers can reproduce a run.
+- Models accept `rng` (a seed or a NumPy `Generator`, directly or through a `Scenario`) and pass it to `Model`, which seeds both `model.rng` and `model.random`. Examples and tutorials expose it so readers can reproduce a run.
 - Test randomized behaviour with fixed seeds, and assert what matters rather than incidental output.
 
 ## Performance
@@ -49,7 +49,7 @@ Conventions that apply across Mesa. When in doubt, follow the surrounding code.
 
 - Docstrings start with a one-line summary. Reference docs cover public APIs; tutorials explain how to use Mesa.
 - Docs are Markdown (MyST). Build them and check the rendered result; don't commit build output.
-- Clear notebook outputs before committing. When adding or renaming a tutorial, update listings, links and Colab/Binder badges ([#3280](https://github.com/mesa/mesa/issues/3280)).
+- Clear notebook outputs before committing. When adding or renaming a tutorial, update listings, links, and Colab/Binder badges ([#3280](https://github.com/mesa/mesa/issues/3280)).
 - Incompatible changes get a [migration guide](../migration_guide) entry; new features go in the release notes.
 
 ## Examples

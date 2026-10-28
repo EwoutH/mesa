@@ -14,7 +14,7 @@ Most of the work in improving Mesa is agreeing on **what problem we are solving,
 - **Enhancements and new features**: open an [issue](https://github.com/mesa/mesa/issues) or [discussion](https://github.com/mesa/mesa/discussions) first, and wait for a maintainer to agree on direction before opening a PR.
 - **Questions and ideas**: start a [discussion](https://github.com/mesa/mesa/discussions).
 
-It's always easier to move from a discussion to an implementation than to rework a large PR. The [developer guide](https://mesa.readthedocs.io/latest/development/) explains this process in more depth, along with our design principles, standards and past decisions.
+It's always easier to move from a discussion to an implementation than to rework a large PR. The [developer guide](https://mesa.readthedocs.io/latest/development/) explains this process in more depth, along with our design principles, standards, and past decisions.
 
 ## I have no idea where to start
 That's fine! Here's a rough outline where you could start, depending on your experience:
@@ -23,7 +23,7 @@ That's fine! Here's a rough outline where you could start, depending on your exp
 You already know how to build Mesa models (if not skip below), and probably have found things Mesa can't do (elegantly). You want to improve that. Awesome!
 
 First step is to install some proper tools, if you haven't already.
-- A good IDE helps for code development, testing and formatting. [PyCharm](https://www.jetbrains.com/pycharm/) or [VSCode](https://code.visualstudio.com/) for example.
+- A good IDE helps for code development, testing, and formatting. [PyCharm](https://www.jetbrains.com/pycharm/) or [VSCode](https://code.visualstudio.com/) for example.
 - Dive into Git and GitHub. Watch some videos, this takes some time to click. [GitHub Desktop](https://desktop.github.com/) is great.
 - [`https://github.dev/mesa/mesa`](https://github.dev/mesa/mesa) is great for small changes (to docs).
 
@@ -37,7 +37,7 @@ First step is to start thinking like a modeller. To understand the fine details 
 - Follow an ABM course (if possible). They might be a bit outdated programming language wise, but conceptual they're sound.
   - This MOOC on ABM concepts: [Agent Based Modeling](https://ocw.tudelft.nl/course-lectures/agent-based-modeling/)
   - This MOOC on practical ABM modelling: [Agent-Based Models with Python: An Introduction to Mesa](https://www.complexityexplorer.org/courses/172-agent-based-models-with-python-an-introduction-to-mesa)
-- Go though multiple of our [examples](https://github.com/mesa/mesa-examples). Play with them, modify things and get a feel for Mesa and ABMs.
+- Go though multiple of our [examples](https://github.com/mesa/mesa-examples). Play with them, modify things, and get a feel for Mesa and ABMs.
   - Check our open [issues](https://github.com/mesa/mesa-examples/issues) for the examples.
   - If you see anything you want to improve, feel free to open a (small) PR for bug fixes/docs. For enhancements/new features, discuss first and wait for maintainer approval.
 - If you have a feel for Mesa, check our [discussions](https://github.com/mesa/mesa/discussions) and [issues](https://github.com/mesa/mesa/issues).
@@ -61,7 +61,7 @@ Start with creating your own models, for fun. Once you have some experience, mov
 7. Commit with a meaningful message (see [Tim Pope's guideline]), push to your fork, and [create a pull request].
 8. Pick the bug or feature PR template and fill in every section. Link the issue or discussion it addresses.
 
-Make sure your PR passes the [GH Actions build]. If you get stuck on tests, CI or anything else, ask in the PR. We're happy to help.
+Make sure your PR passes the [GH Actions build]. If you get stuck on tests, CI, or anything else, ask in the PR. We're happy to help.
 
 ## Using AI tools
 
@@ -71,7 +71,7 @@ AI tools are welcome. Our [Code of Conduct](https://github.com/mesa/mesa/blob/ma
 
 - [Developer guide](https://mesa.readthedocs.io/latest/development/): how we work, from problem to concept to code
 - [Design principles and trade-offs](https://mesa.readthedocs.io/latest/development/principles.html)
-- [Code, test and documentation standards](https://mesa.readthedocs.io/latest/development/standards.html), including the deprecation policy and examples policy
+- [Code, test, and documentation standards](https://mesa.readthedocs.io/latest/development/standards.html), including the deprecation policy and examples policy
 - [Reviewing contributions](https://mesa.readthedocs.io/latest/development/review.html)
 - [Project decisions](https://mesa.readthedocs.io/latest/development/decisions.html)
 - [Roles and releases](https://mesa.readthedocs.io/latest/development/maintainers.html)
