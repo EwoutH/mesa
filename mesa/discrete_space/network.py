@@ -16,12 +16,18 @@ from collections.abc import Callable, Mapping
 from random import Random
 from typing import Any
 
-import networkx as nx
 import numpy as np
 from scipy.spatial import KDTree
 
 from mesa.discrete_space.cell import Cell
 from mesa.discrete_space.discrete_space import DiscreteSpace
+
+
+def _spring_layout(G):  # noqa: N803
+    """Default layout: networkx.spring_layout, imported lazily to keep NetworkX optional."""
+    import networkx as nx  # noqa: PLC0415
+
+    return nx.spring_layout(G)
 
 
 class Network(DiscreteSpace[Cell]):
@@ -33,7 +39,7 @@ class Network(DiscreteSpace[Cell]):
         capacity: int | None = None,
         random: Random | None = None,
         cell_klass: type[Cell] = Cell,
-        layout: Mapping | Callable | None = nx.spring_layout,
+        layout: Mapping | Callable | None = _spring_layout,
     ) -> None:
         """A Networked grid.
 
