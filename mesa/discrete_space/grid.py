@@ -315,15 +315,16 @@ class Grid(DiscreteSpace[T]):
                 if cell.is_empty:
                     return cell
 
-        empty_coords = np.argwhere(self.property_layers["empty"])
+        empty_layer = self.property_layers["empty"]
+        empty_indices = np.flatnonzero(empty_layer)
         try:
-            random_coord = self.random.choice(empty_coords)
+            random_index = self.random.choice(empty_indices)
         except IndexError as e:
             raise ValueError(
                 "Grid is completely full. No empty cells available. "
                 "Cannot select a random empty cell."
             ) from e
-        return self._cells[tuple(random_coord)]
+        return self._cells[np.unravel_index(random_index, empty_layer.shape)]
 
     @property
     def cells_with_capacity(self) -> CellCollection[T]:
