@@ -3,6 +3,141 @@
 ---
 title: Release History
 ---
+# 3.5.2 (2026-10-28)
+## Highlights
+Mesa 3.5.2 is a maintenance release that backports bug fixes, performance improvements, and small enhancements from the Mesa 4.0 development branch to the stable 3.5.x series. It contains no breaking changes.
+
+The event system gets a round of correctness fixes. `EventGenerator` now honors `stop()` and `pause()` called from inside its own callback (#3874), no longer double-schedules when restarted from its callback (#3922), rejects a `schedule.start` in the past (#3910) and non-positive callable intervals (#3729), and gains an `is_paused` property (#3980). `EventList` now compacts itself automatically when cancelled events dominate, which keeps memory and runtime bounded in models that cancel and reschedule often (#3800), and it refuses an event that is already queued (#3974).
+
+Several fixes may change results in models that were hitting a bug. `AgentSet.do()`, `shuffle_do()` and `map()` on derived AgentSets now skip agents that were removed earlier in the same loop (#3918). `DataCollector` agenttype reporters now consistently include subclass agents, regardless of whether the reporter's type also has direct instances (#3797). `VoronoiGrid` no longer overwrites an explicit `capacity` with the area-based capacity (#3544).
+
+Other fixes cover the discrete space (`Cell.empty` before any agent operations #3726, the `empty` flag after a rejected `add_agent` #3889, self-loops in `get_neighborhood` #3896, `FixedAgent` before placement #3986), `DataCollector` (empty-reporter dataframes now warn instead of raising #3434, table rows are validated before data is modified #3861), visualization (empty Altair plots #3685, mixed colors #3866, z-order #3928, network drawing #3856), and the experimental signals, data collection and meta-agents modules. NetworkX is now imported lazily, so `import mesa` works without it (#3598).
+
+Small additions include informative `__repr__`/`__str__` for `Agent`, `AgentSet` and `GroupBy` (#3652, #3741, #3759), `GroupBy.get_group()` (#3713), and a `default` for `CellCollection.select_random_cell()` (#3725). Continuous space and Voronoi KD-tree updates are faster (#3491, #3556, #3701).
+
+## What's Changed
+### 🛠 Enhancements
+* Add time column to empty dataframe in `datarecorder` by @codebreaker32 in #3408
+* fix: prevent IndexError and add clear error message in select_random_empty_cell() when grid is full by @BEASTSHRIRAM in #3500
+* feat: add __str__ to Agent base class by @Atharva76-cpu in #3652
+* fix: raise clear TypeError when SolaraViz receives a model class instead of an instance by @Tejasv-Singh in #3698
+* Add get_group to GroupBy by @pragnyanramtha in #3713
+* Make CellCollection.select_random_cell empty-safe with a default parameter by @AshNicolus in #3725
+* Add informative __repr__ and __str__ to AgentSet and GroupBy by @AshNicolus in #3741
+* Added __repr__ method to Agent class by @dietcoke-17 in #3759
+* Exclude unique_id from generic repr attrs to avoid duplication by @dietcoke-17 in #3776
+* Warn once per call for dict agent_portrayal by @NoiceHax in #3803
+* fix: prevent log_to_stderr test pollution and allow propagate configuration by @DYNOSuprovo in #3859
+* Make select() raise on negative integer or boolean at_most (#3867) by @Dilraj07 in #3868
+* Add an is_paused property to EventGenerator by @AshNicolus in #3980
+
+### 🐛 Bugs fixed
+* Fix sliding window eviction crash in ModelDataSet by @ShreyasN707 in #3389
+* treat tuple size bounds as inclusive in `find_combinations` by @falloficaruss in #3422
+* Fix non-deterministic meta-agent membership assignment by @codebyNJ in #3433
+* Fix incorrect warnings and exception types in `model.py` and `datacollection.py` by @codebyNJ in #3434
+* preserve explicit meta attributes/methods over inferred members by @falloficaruss in #3472
+* Fixes a cache-invalidation bug for `SignalingList` by @codebreaker32 in #3486
+* Fix SolaraViz reset crash on raw Solara components by @Tejasv-Singh in #3494
+* Fix `MetaAgent.remove()` leaving stale references on constituent agents by @codebyNJ in #3506
+* Fix `DataCollector` `model_reporters` list-shape validation to avoid `IndexError` by @falloficaruss in #3514
+* fix: InputText widget returns string seed causing model reset to fail #3516 by @R1patil in #3518
+* Fix VoronoiGrid overwriting an explicit capacity with the area function by @DipayanDasgupta in #3544
+* Lazy import networkx in Network space by @laxmi2577 in #3598
+* Fix ValueError in get_k_nearest_agents when k >= number of agents by @Vartika222 in #3671
+* Fix IndexError in Altair visualization when no agents are present by @SiddharthRiot in #3685
+* fix: add_row() no longer mutates caller's input dictionary by @Krishsharma179 in #3690
+* Fix: CellAgent inheritance initialization with MetaAgent by @codebyNJ in #3697
+* Fix AttributeError when accessing Cell.empty before adding/removing agents by @AshNicolus in #3726
+* Fix TypeError in meta-agent sorting with non-integer unique_id by @AshNicolus in #3727
+* Reject non-positive callable Schedule intervals in EventGenerator by @AshNicolus in #3729
+* Return descriptor on class-level Observable access by @AshNicolus in #3733
+* Fix DataCollector agenttype reporters to be consistently exact-type by @AshNicolus in #3797
+* Fix NumpyAgentDataSet agent ids becoming floats after storage expansion by @AshNicolus in #3820
+* fix(visualization): reject positional-only parameters in _check_model_params by @sundeep8967 in #3835
+* Make select() raise on invalid float at_most instead of silently ignoring it by @RudraDudhat2509 in #3853
+* Fix network crash error by @dietcoke-17 in #3856
+* Fix _get_hexmesh mutable cache return and wrong type hint by @yashvisharma1204 in #3858
+* Make CellCollection.select() raise on invalid float at_most by @Dev-next-gen in #3860
+* Validate table rows before modifying collected data by @Shubham-Padkonde in #3861
+* mixed-face-colors patch by @dietcoke-17 in #3866
+* Handle all numpy int and float widths in NumpyJSONEncoder by @AshNicolus in #3870
+* Honor stop and pause called from an EventGenerator callback by @AshNicolus in #3874
+* fix(discrete_space): do not flip empty flag when add_agent is rejected (#3883) by @rishiiicreates in #3889
+* fix(data_collection): preserve integer dtype for agent_id in numpy datasets (#3871) by @rishiiicreates in #3892
+* fix(discrete_space): remove self-loop cell in get_neighborhood fast path (#3885) by @suhailmalik-tech in #3896
+* Raise IndexError for out-of-range negative indices in ObservableList by @Shivansh1205 in #3902
+* Detach events in EventList.clear so later cancels are not counted by @Shivansh1205 in #3904
+* Reject past schedule.start in EventGenerator.start by @Shivansh1205 in #3910
+* fix: skip removed agents mid-iteration in AgentSet.do/shuffle_do/map by @0xnithinmys in #3918
+* Do not double-schedule when an EventGenerator is restarted from its callback by @AshNicolus in #3922
+* Fix z-order masking in matplotlib scatter by @CraftierTen5 in #3928
+* Fix reverse slice mutations in ObservableList by @ska2704 in #3962
+* Refuse an Event that is already queued in the same EventList by @lahari936 in #3974
+* fix(discrete_space): lazily synchronize KD-Tree in VoronoiGrid (#3984) by @Dilraj07 in #3985
+* Make FixedAgent handle being unplaced as agreed in #3748 by @AshNicolus in #3986
+
+### ⚡ Performance improvements
+* Optimise `_remove_agent` in Continuous Space by @codebreaker32 in #3491
+* Refactor _add_agent in ContinuousSpace by @codebreaker32 in #3556
+* perf:lazy KDTree rebuild + tests by @Krishsharma179 in #3701
+* Compact the event list when canceled events dominate by @codebreaker32 in #3800
+
+### 🔍 Examples updated
+* docs: standardize run instructions across Mesa examples by @DashamiJituri in #3539
+* Fix #3597: safe Sheep.feed() when grass=False, add regression test by @DipayanDasgupta in #3627
+* Update Conway Streamlit example for current grid API by @falloficaruss in #3781
+* fix(examples): update Boltzmann Streamlit app to modern cell space API by @pojeesahil in #3978
+
+### 📜 Documentation improvements
+* document the duplicate coordinate by @Krishsharma179 in #3473
+* Fix typos and grammar in first model tutorial by @Artemiz0307 in #3540
+* Fix typo, error message, and docstring references by @EloZiko in #3623
+* Fix Mesa API reference link in Getting Started docs by @dietcoke-17 in #3740
+* Fix incorrect parameter documentation in VoronoiGrid by @eeshsaxena in #3765
+* DOC: warn about tuple-length ambiguity in Agent.create_agents by @shipitdev in #3780
+* Remove spurious 'List' entry from find_combinations docstring by @AshNicolus in #3787
+* Change matrix references to discord by @tpike3 in #3792
+* docs: fix pre-existing Vale WordListCase warnings across 7 files by @hudsonwa in #3804
+* Update discord invite link by @wang-boyu in #3807
+* Fix inaccurate references and examples in core docstrings by @AshNicolus in #3818
+* Fix signal docstring examples and add doctest coverage by @falloficaruss in #3819
+* docs: fix outdated snippets in overview, best-practices and visualization API pages by @Shivansh1205 in #3895
+* docs: fix two broken tutorial links by @codebreaker32 in #3924
+
+### 🔧 Maintenance
+* Reorganize and deduplicate event-related tests by @EwoutH in #3529
+* Fix run_model_test capturing initial image instead of updated visualization by @Vartika222 in #3670
+* added missing test for some lines in agent.py by @dietcoke-17 in #3789
+* Fix test_empties_space assertions and docstring in test_discrete_space by @Dilraj07 in #3793
+* Add regression test for retained empty agents_by_type bucket by @AshNicolus in #3809
+* Stop pytest 9.2 from failing at plugin load on solara's websockets warning by @lahari936 in #4012
+
+## New Contributors
+* @BEASTSHRIRAM made their first contribution in #3500
+* @R1patil made their first contribution in #3518
+* @DashamiJituri made their first contribution in #3539
+* @Artemiz0307 made their first contribution in #3540
+* @EloZiko made their first contribution in #3623
+* @Atharva76-cpu made their first contribution in #3652
+* @Vartika222 made their first contribution in #3670
+* @SiddharthRiot made their first contribution in #3685
+* @AshNicolus made their first contribution in #3725
+* @eeshsaxena made their first contribution in #3765
+* @Dilraj07 made their first contribution in #3793
+* @NoiceHax made their first contribution in #3803
+* @hudsonwa made their first contribution in #3804
+* @RudraDudhat2509 made their first contribution in #3853
+* @yashvisharma1204 made their first contribution in #3858
+* @DYNOSuprovo made their first contribution in #3859
+* @Dev-next-gen made their first contribution in #3860
+* @Shubham-Padkonde made their first contribution in #3861
+* @Shivansh1205 made their first contribution in #3895
+* @CraftierTen5 made their first contribution in #3928
+* @lahari936 made their first contribution in #3974
+
+**Full Changelog**: https://github.com/mesa/mesa/compare/v3.5.1...v3.5.2
+
 # 3.5.1 (2026-03-15)
 ## Highlights
 Mesa 3.5.1 is a maintenance release that backports bug fixes, performance improvements, and minor enhancements from the Mesa 4.0 development branch to the stable 3.5.x series.
