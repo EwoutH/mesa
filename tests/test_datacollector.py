@@ -4,6 +4,7 @@ import unittest
 from functools import partial
 
 import pandas as pd
+import pytest
 
 from mesa import Agent, Model
 from mesa.datacollection import DataCollector
@@ -887,3 +888,30 @@ def test_mutable_data_independence():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_get_model_vars_dataframe_no_reporters():
+    """Without model reporters, warn and return an empty DataFrame."""
+    dc = DataCollector()
+    with pytest.warns(UserWarning, match="No model reporters"):
+        df = dc.get_model_vars_dataframe()
+    assert df.empty
+
+
+def test_get_agent_vars_dataframe_no_reporters():
+    """Without agent reporters, warn and return an empty DataFrame."""
+    dc = DataCollector()
+    with pytest.warns(UserWarning, match="No agent reporters"):
+        df = dc.get_agent_vars_dataframe()
+    assert df.empty
+
+
+def test_table_errors():
+    """Missing tables and missing columns raise ValueError."""
+    dc = DataCollector(tables={"t": ["a", "b"]})
+    with pytest.raises(ValueError, match="does not exist"):
+        dc.add_table_row("nonexistent", {"a": 1})
+    with pytest.raises(ValueError, match="does not exist"):
+        dc.get_table_dataframe("nonexistent")
+    with pytest.raises(ValueError, match="missing column 'b'"):
+        dc.add_table_row("t", {"a": 1})
