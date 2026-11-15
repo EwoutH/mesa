@@ -32,12 +32,13 @@ already placed stay in the old space, while followers move into the new one.
 
 from __future__ import annotations
 
+import warnings
 from operator import attrgetter
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from mesa.discrete_space import Grid, HexGrid, Network
+from mesa.discrete_space import Grid, HexGrid, Network, VoronoiGrid
 
 if TYPE_CHECKING:
     from mesa.agent import Agent
@@ -155,7 +156,13 @@ def _declarations(cls: type) -> tuple[dict, dict]:
 # ----------------------------------------------------------------------
 def _resolve(agent: Agent, followers, point) -> list:
     """Find each follower's cell for a point. Raises if one has none."""
-    return [(follower, follower._resolve(agent, point)) for follower in followers]
+    state = agent.__dict__
+    targets = []
+    for follower in followers:
+        if state.get(follower._key) is None:
+            follower._check_alignment(agent)
+        targets.append((follower, follower._resolve(agent, point)))
+    return targets
 
 
 def _enter(agent: Agent, targets) -> None:
@@ -166,8 +173,6 @@ def _enter(agent: Agent, targets) -> None:
         for location, cell in targets:
             old = state.get(location._key)
             if cell is not old:
-                if old is None and location.follows is not None:
-                    location._check_alignment(agent)
                 cell.add_agent(agent)
                 entered.append(cell)
     except Exception:
@@ -187,11 +192,23 @@ def _commit(agent: Agent, targets) -> None:
             state[location._key] = cell
 
 
-def _cell_size(space) -> list[float] | None:
-    """Return the cell size of a grid along each axis, if it places cells by one."""
-    if isinstance(space, Grid) and not isinstance(space, HexGrid):
-        return space._mapping[1]
-    return None
+# The kinds of primary and follower space that are known to line up
+_SUPPORTED = frozenset(
+    {("point", "grid"), ("point", "hex"), ("point", "voronoi"), ("grid", "grid")}
+)
+
+
+def _kind(space) -> str:
+    """Return the kind of a discrete space, as used in ``_SUPPORTED``."""
+    if isinstance(space, Network):
+        return "network"
+    if isinstance(space, HexGrid):
+        return "hex"
+    if isinstance(space, Grid):
+        return "grid"
+    if isinstance(space, VoronoiGrid):
+        return "voronoi"
+    return type(space).__name__
 
 
 def _bounds(space) -> list[tuple[float, float]] | None:
@@ -237,12 +254,14 @@ class CellLocation(_Location):
         follows: the name of another location of the same agent that this one
             follows. The agent's cell is then always the cell of ``space`` at that
             location, and assigning a cell moves the other location to its center.
-            The other location must be at least as detailed: if it is a cell too,
-            its cells can't be larger than this location's. If either space is a
-            torus, they must wrap in the same place: a torus grid must have the
-            same bounds as the other space and be a torus too, and a grid in a
-            torus space must lie within it. The first move raises ``ValueError``
-            otherwise.
+            A cell of a grid, hex grid or Voronoi grid can follow a point, and a
+            grid cell can follow a grid cell that is no larger. A Network can't
+            follow or be followed (``TypeError``). Other combinations warn, since
+            nothing checks that their cells line up. If either space is a torus,
+            they must wrap in the same place: a torus grid must have the same
+            bounds as the other space and be a torus too, and a grid in a torus
+            space must lie within it. The first move raises ``ValueError`` if a
+            grid follows a coarser grid or the tori don't match.
 
     Notes:
         Without ``follows``, this is what ``CellAgent.cell`` does, under a name of
@@ -345,35 +364,51 @@ class CellLocation(_Location):
             )
 
     def _check_alignment(self, agent: Agent) -> None:
-        """Refuse a coarser primary, or a torus mismatch, once per agent.
+        """Check once per agent, before it first gets a cell here, that the spaces fit.
 
-        A follower finer than its primary cell can only reach the cells at the
-        centers of the primary's cells, so its extra detail is never used. A torus
-        grid that doesn't match its primary's space wraps points into cells on the
-        other side, and a torus primary wraps a cell outside it back into its
-        space. Neither raises by itself, so check once, when the agent first gets
-        a cell here. Partial grids in a bounded space fail loudly on their own and
-        stay allowed.
+        A Network has no shared coordinates, so it raises. Pairs of spaces not in
+        ``_SUPPORTED`` warn, since nothing below checks them. The rest would give
+        wrong cells without raising by themselves: a follower finer than its
+        primary cell can only reach the cells at the centers of the primary's
+        cells, a torus grid that doesn't match its primary's space wraps points
+        into cells on the other side, and a torus primary wraps a cell outside it
+        back into its space. Partial grids in a bounded space fail loudly on their
+        own and stay allowed.
         """
         primary = self._primary(agent)
         space = self._space(agent)
         outer = primary._space(agent)
-        if isinstance(primary, CellLocation):
-            sizes, outer_sizes = _cell_size(space), _cell_size(outer)
-            if (
-                sizes is not None
-                and outer_sizes is not None
-                and any(
-                    size < outer_size * (1 - 1e-9)
-                    for size, outer_size in zip(sizes, outer_sizes, strict=True)
-                )
-            ):
-                raise ValueError(
-                    f"{type(agent).__name__}.{self.name} follows {self.follows}, "
-                    f"but model.{primary.space_name} has larger cells than model."
-                    f"{self.space_name}. The primary must be the most detailed "
-                    "location: let the finer grid be followed instead."
-                )
+        pair = (
+            "point" if isinstance(primary, ContinuousLocation) else _kind(outer),
+            _kind(space),
+        )
+        if "network" in pair:
+            raise TypeError(
+                f"{type(agent).__name__}.{self.name} follows {self.follows}, but a "
+                "Network can't follow or be followed: a point is not on a node, and "
+                "a node's position is only where it is drawn."
+            )
+        if pair not in _SUPPORTED:
+            warnings.warn(
+                f"{type(agent).__name__}.{self.name}: a {type(space).__name__} "
+                f"following a {type(outer).__name__} isn't a supported combination, "
+                "so nothing checks that their cells line up.",
+                UserWarning,
+                skip_file_prefixes=(__file__,),
+            )
+            return
+        if pair == ("grid", "grid") and any(
+            size < outer_size * (1 - 1e-9)
+            for size, outer_size in zip(
+                space._mapping[1], outer._mapping[1], strict=True
+            )
+        ):
+            raise ValueError(
+                f"{type(agent).__name__}.{self.name} follows {self.follows}, "
+                f"but model.{primary.space_name} has larger cells than model."
+                f"{self.space_name}. The primary must be the most detailed "
+                "location: let the finer grid be followed instead."
+            )
         torus = getattr(space, "torus", False)
         outer_torus = getattr(outer, "torus", False)
         if not (torus or outer_torus):
@@ -411,14 +446,7 @@ class CellLocation(_Location):
 
     def _resolve(self, agent: Agent, point) -> Cell:
         """Return the cell of this location's space at a point."""
-        space = self._space(agent)
-        if isinstance(space, Network):
-            # A network does not divide space into cells: most points are on no node
-            raise TypeError(
-                f"{type(agent).__name__}.{self.name} cannot follow a location in a "
-                "Network, because a point is not on a node."
-            )
-        return space.find_nearest_cell(point)
+        return self._space(agent).find_nearest_cell(point)
 
 
 class _Handle:

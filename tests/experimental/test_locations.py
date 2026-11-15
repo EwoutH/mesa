@@ -2,13 +2,14 @@
 
 import pickle
 import random
+import warnings
 
 import networkx as nx
 import numpy as np
 import pytest
 
 from mesa import Agent, Model
-from mesa.discrete_space import Network, OrthogonalMooreGrid
+from mesa.discrete_space import HexGrid, Network, OrthogonalMooreGrid
 from mesa.exceptions import CellFullException
 from mesa.experimental.continuous_space import ContinuousSpace, ContinuousSpaceAgent
 from mesa.experimental.locations import CellLocation, ContinuousLocation
@@ -603,16 +604,49 @@ def test_follower_rules(model):
     assert bird not in model.ground[0, 0].agents
 
 
-def test_follower_in_network_raises(model):
-    """A network does not divide space into cells, so it cannot follow a point."""
+def test_network_cannot_follow_or_be_followed(model):
+    """A network has no shared coordinates, on either side; nothing changes."""
     model.roads = Network(nx.path_graph(3), random=model.random)
 
     class Driver(Agent):
         position = ContinuousLocation("air")
         node = CellLocation("roads", follows="position")
 
+    class Commuter(Agent):
+        node = CellLocation("roads")
+        cell = CellLocation("ground", follows="node")
+
     with pytest.raises(TypeError, match="Network"):
         Driver(model).position = [1.0, 1.0]
+
+    commuter = Commuter(model)
+    with pytest.raises(TypeError, match="Network"):
+        commuter.node = model.roads[0]
+    assert commuter.node is None
+    assert commuter not in model.roads[0].agents
+
+
+def test_unsupported_pair_of_spaces_warns_and_still_follows(model):
+    """A pair not known to line up warns at the user's line; supported ones don't."""
+    model.hexes = HexGrid((10, 10), random=model.random)
+
+    class Hexer(Agent):
+        hex = CellLocation("hexes")
+        cell = CellLocation("ground", follows="hex")
+
+    class Hopper(Agent):
+        position = ContinuousLocation("air")
+        hex = CellLocation("hexes", follows="position")
+
+    hexer = Hexer(model)
+    with pytest.warns(UserWarning, match="supported combination") as record:
+        hexer.hex = model.hexes[2, 3]
+    assert record[0].filename == __file__
+    assert hexer.cell is model.ground.find_nearest_cell(model.hexes[2, 3].position)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Hopper(model).position = [1.0, 1.0]
 
 
 def test_followers_stay_consistent_under_random_moves():
