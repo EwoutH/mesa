@@ -23,7 +23,7 @@ class Bird(Agent):
     """A bird that flies through the air and eats fruit from the trees below."""
 
     position = ContinuousLocation("air")  # a point in model.air
-    cell = CellLocation("ground", follows="position")  # the ground cell below it
+    cell = CellLocation("ground", follows=position)  # the ground cell below it
 
     def __init__(self, model, position, energy):
         super().__init__(model)

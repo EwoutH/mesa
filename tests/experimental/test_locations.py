@@ -28,22 +28,22 @@ class Bird(Agent):
     """An agent whose ground cell follows its position in the air."""
 
     position = ContinuousLocation("air")
-    cell = CellLocation("ground", follows="position")
+    cell = CellLocation("ground", follows=position)
 
 
 class Surveyor(Agent):
     """An agent whose cells in two grids follow its position."""
 
     position = ContinuousLocation("air")
-    cell = CellLocation("ground", follows="position")
-    district = CellLocation("districts", follows="position")
+    cell = CellLocation("ground", follows=position)
+    district = CellLocation("districts", follows=position)
 
 
 class Walker(Agent):
     """An agent on a grid whose district follows its cell."""
 
     cell = CellLocation("ground")
-    district = CellLocation("districts", follows="cell")
+    district = CellLocation("districts", follows=cell)
 
 
 @pytest.fixture
@@ -452,7 +452,7 @@ class Zoomer(Agent):
     """An agent on a coarse grid with a cell in a fine grid that follows it."""
 
     district = CellLocation("districts")
-    cell = CellLocation("ground", follows="district")
+    cell = CellLocation("ground", follows=district)
 
 
 def test_follower_finer_than_its_cell_primary_is_refused(model):
@@ -482,7 +482,7 @@ def test_follower_of_a_cell_with_shifted_origins(model):
 
     class Shifted(Agent):
         cell = CellLocation("ground")
-        shifted = CellLocation("offset", follows="cell")
+        shifted = CellLocation("offset", follows=cell)
 
     agent = Shifted(model)
     agent.cell = model.ground[5, 5]
@@ -573,25 +573,47 @@ def test_torus_check_between_cell_locations(model):
     assert walker.cell is None
 
 
-def test_follower_rules(model):
-    """Followers need a space, a real primary, and cannot be cleared on their own."""
-    with pytest.raises(TypeError):
-        CellLocation(follows="position")
+def test_follower_declaration_errors():
+    """A follower takes a location of its own class, checked when it is defined."""
+    with pytest.raises(TypeError, match="without quotes"):
+        CellLocation("ground", follows="position")
+    with pytest.raises(TypeError, match="another location"):
+        CellLocation("ground", follows=42)
 
-    class Orphan(Agent):
-        cell = CellLocation("ground", follows="nothing")
+    with pytest.raises(TypeError, match="not one of Orphan"):
 
-    with pytest.raises(TypeError, match="nothing"):
-        Orphan(model).cell = model.ground[0, 0]
-
-    class Chain(Agent):
-        position = ContinuousLocation("air")
-        cell = CellLocation("ground", follows="position")
-        district = CellLocation("districts", follows="cell")
+        class Orphan(Agent):
+            cell = CellLocation("ground", follows=Bird.position)
 
     with pytest.raises(TypeError, match="follow position directly"):
-        Chain(model).position = [1.0, 1.0]
 
+        class Chain(Agent):
+            position = ContinuousLocation("air")
+            cell = CellLocation("ground", follows=position)
+            district = CellLocation("districts", follows=cell)
+
+    with pytest.raises(TypeError, match="overrides"):
+
+        class Duck(Bird):
+            position = ContinuousLocation("water")
+
+
+def test_follower_of_a_location_on_a_base_class(model):
+    """Base.name follows a location declared on a base class."""
+
+    class Flyer(Agent):
+        position = ContinuousLocation("air")
+
+    class Lander(Flyer):
+        cell = CellLocation("ground", follows=Flyer.position)
+
+    lander = Lander(model)
+    lander.position = [21.3, 40.2]
+    assert lander.cell is model.ground[10, 20]
+
+
+def test_follower_rules(model):
+    """A follower cannot be cleared on its own, or take a cell of another space."""
     bird = Bird(model)
     bird.position = [1.0, 1.0]
     with pytest.raises(ValueError, match="set position to None"):
@@ -610,11 +632,11 @@ def test_network_cannot_follow_or_be_followed(model):
 
     class Driver(Agent):
         position = ContinuousLocation("air")
-        node = CellLocation("roads", follows="position")
+        node = CellLocation("roads", follows=position)
 
     class Commuter(Agent):
         node = CellLocation("roads")
-        cell = CellLocation("ground", follows="node")
+        cell = CellLocation("ground", follows=node)
 
     with pytest.raises(TypeError, match="Network"):
         Driver(model).position = [1.0, 1.0]
@@ -632,11 +654,11 @@ def test_unsupported_pair_of_spaces_warns_and_still_follows(model):
 
     class Hexer(Agent):
         hex = CellLocation("hexes")
-        cell = CellLocation("ground", follows="hex")
+        cell = CellLocation("ground", follows=hex)
 
     class Hopper(Agent):
         position = ContinuousLocation("air")
-        hex = CellLocation("hexes", follows="position")
+        hex = CellLocation("hexes", follows=position)
 
     hexer = Hexer(model)
     with pytest.warns(UserWarning, match="supported combination") as record:

@@ -74,6 +74,8 @@ class Agent[M: Model]:
         # model instance as the agent
         cls._datasets = set()
         cls._mesa_locations = _collect_locations(cls)
+        for location in cls._mesa_locations:
+            location._check_declaration(cls)
 
     def __init__(self, model: M, *args, **kwargs) -> None:
         """Create a new agent.

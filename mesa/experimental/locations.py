@@ -19,7 +19,7 @@ let one follow the other::
 
     class Bird(Agent):
         position = ContinuousLocation("air")
-        cell = CellLocation("ground", follows="position")
+        cell = CellLocation("ground", follows=position)
 
 The bird then has a single location: writing ``position`` updates ``cell``, and
 writing ``cell`` moves ``position`` to the center of that cell. A move is atomic:
@@ -58,9 +58,20 @@ class _Location:
     agent out of its spaces.
     """
 
-    def __init__(self, space: str, *, follows: str | None = None):
+    def __init__(self, space: str, *, follows: _Location | property | None = None):
+        if isinstance(follows, str):
+            raise TypeError(
+                f"follows takes the location itself, not its name: write "
+                f"follows={follows}, without quotes."
+            )
+        if follows is not None and not isinstance(follows, _Location | property):
+            raise TypeError(
+                "follows takes another location of the same agent, such as "
+                f"follows=position, got {follows!r}."
+            )
         self.space_name = space
         self.follows = follows
+        self._installed: property | None = None
         self.name: str | None = None
         self._key: str | None = None
         # The locations that follow this one, per agent class
@@ -77,12 +88,14 @@ class _Location:
         )
         # Agents without the location read None from the class
         setattr(owner, self._key, None)
-        setattr(owner, name, self._property())
+        # Kept so that a subclass can follow this location as Base.name
+        self._installed = self._property()
+        setattr(owner, name, self._installed)
 
     def __repr__(self) -> str:
         args = [repr(self.space_name)]
         if self.follows is not None:
-            args.append(f"follows={self.follows!r}")
+            args.append(f"follows={getattr(self.follows, 'name', self.follows)}")
         return f"{type(self).__name__}({', '.join(args)})"
 
     def _property(self) -> property:  # pragma: no cover
@@ -111,7 +124,11 @@ class _Location:
 
     def _primary(self, agent: Agent) -> _Location:
         """Return the location this one follows."""
-        return _declarations(type(agent))[0][self.follows]
+        return _declarations(type(agent))[2][self.name]
+
+    def _check_declaration(self, cls: type) -> None:
+        """Check the locations of an agent class when it is defined."""
+        _declarations(cls)
 
     def _remove(self, agent: Agent) -> None:
         """Leave the space when the agent is removed; followers leave with their primary."""
@@ -119,10 +136,11 @@ class _Location:
             self._set(agent, None)
 
 
-def _declarations(cls: type) -> tuple[dict, dict]:
-    """Return the locations of an agent class by name, and their followers.
+def _declarations(cls: type) -> tuple[dict, dict, dict]:
+    """Return the locations of an agent class by name, their followers, and primaries.
 
-    Checks that every followed location exists and is not itself a follower.
+    Checks that every followed location is a location of the class, and is not
+    itself a follower. Runs when the class is defined.
     """
     cached = cls.__dict__.get("_mesa_location_declarations")
     if cached is not None:
@@ -130,23 +148,46 @@ def _declarations(cls: type) -> tuple[dict, dict]:
 
     locations = {loc.name: loc for loc in getattr(cls, "_mesa_locations", ())}
     followers: dict[str, list[CellLocation]] = {}
+    primaries: dict[str, _Location] = {}
     for location in locations.values():
-        if location.follows is None:
+        target = location.follows
+        if target is None:
             continue
-        primary = locations.get(location.follows)
+        # A location from the class body, or Base.name, which is its property
+        primary = next(
+            (
+                loc
+                for loc in locations.values()
+                if loc is target or loc._installed is target
+            ),
+            None,
+        )
+        where = f"{cls.__name__}.{location.name}"
         if primary is None:
+            name = getattr(target, "name", None)
+            if name in locations:
+                raise TypeError(
+                    f"{where} follows {name}, which {cls.__name__} overrides; "
+                    f"declare {location.name} again in {cls.__name__} to follow "
+                    "the new one."
+                )
             raise TypeError(
-                f"{cls.__name__}.{location.name} follows {location.follows!r}, "
-                f"which is not a location of {cls.__name__}."
+                f"{where} follows a location that is not one of {cls.__name__}."
             )
         if primary.follows is not None:
+            root = getattr(primary.follows, "name", "another location")
             raise TypeError(
-                f"{cls.__name__}.{location.name} follows {primary.name}, which itself "
-                f"follows {primary.follows}; follow {primary.follows} directly."
+                f"{where} follows {primary.name}, which follows {root} itself; "
+                f"follow {root} directly."
             )
         followers.setdefault(primary.name, []).append(location)
+        primaries[location.name] = primary
 
-    declarations = (locations, {k: tuple(v) for k, v in followers.items()})
+    declarations = (
+        locations,
+        {k: tuple(v) for k, v in followers.items()},
+        primaries,
+    )
     cls._mesa_location_declarations = declarations
     return declarations
 
@@ -251,9 +292,10 @@ class CellLocation(_Location):
     Args:
         space: the name of the model attribute holding the space, such as
             ``"ground"`` for ``model.ground``.
-        follows: the name of another location of the same agent that this one
-            follows. The agent's cell is then always the cell of ``space`` at that
-            location, and assigning a cell moves the other location to its center.
+        follows: another location of the same agent, declared above this one,
+            or ``Base.name`` for one declared on a base class. The agent's cell is
+            then always the cell of ``space`` at that location, and assigning a
+            cell moves the other location to its center.
             A cell of a grid, hex grid or Voronoi grid can follow a point, and a
             grid cell can follow a grid cell that is no larger. A Network can't
             follow or be followed (``TypeError``). Other combinations warn, since
@@ -333,8 +375,8 @@ class CellLocation(_Location):
         primary = self._primary(agent)
         if cell is None:
             raise ValueError(
-                f"{type(agent).__name__}.{self.name} follows {self.follows}; set "
-                f"{self.follows} to None to take the agent out of both."
+                f"{type(agent).__name__}.{self.name} follows {primary.name}; set "
+                f"{primary.name} to None to take the agent out of both."
             )
         self._check_space(agent, cell)
         if agent.__dict__.get(self._key) is None:
@@ -346,7 +388,7 @@ class CellLocation(_Location):
             target = primary._resolve(agent, cell.position)
             if self._resolve(agent, target.position) is not cell:
                 raise ValueError(
-                    f"{type(agent).__name__}.{self.name} follows {self.follows}, a "
+                    f"{type(agent).__name__}.{self.name} follows {primary.name}, a "
                     f"cell of model.{primary.space_name}, so it can only be a cell of "
                     f"model.{self.space_name} at the center of such a cell, which "
                     f"{cell.coordinate} is not."
@@ -384,7 +426,7 @@ class CellLocation(_Location):
         )
         if "network" in pair:
             raise TypeError(
-                f"{type(agent).__name__}.{self.name} follows {self.follows}, but a "
+                f"{type(agent).__name__}.{self.name} follows {primary.name}, but a "
                 "Network can't follow or be followed: a point is not on a node, and "
                 "a node's position is only where it is drawn."
             )
@@ -404,7 +446,7 @@ class CellLocation(_Location):
             )
         ):
             raise ValueError(
-                f"{type(agent).__name__}.{self.name} follows {self.follows}, "
+                f"{type(agent).__name__}.{self.name} follows {primary.name}, "
                 f"but model.{primary.space_name} has larger cells than model."
                 f"{self.space_name}. The primary must be the most detailed "
                 "location: let the finer grid be followed instead."
@@ -420,7 +462,7 @@ class CellLocation(_Location):
         # bounds is not None, so space is a grid with a cell size
         tolerance = 1e-9 * min(space._mapping[1])
         where = (
-            f"{type(agent).__name__}.{self.name} follows {self.follows}, but "
+            f"{type(agent).__name__}.{self.name} follows {primary.name}, but "
             f"model.{self.space_name}"
         )
         if torus:
