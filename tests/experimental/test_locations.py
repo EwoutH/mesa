@@ -440,7 +440,7 @@ def test_point_without_cell_rejects_the_move(model):
     model.districts = OrthogonalMooreGrid((2, 2), cell_size=20.0, random=model.random)
     surveyor = Surveyor(model)
     surveyor.position = [10.0, 10.0]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="district follows position"):
         surveyor.position = [90.0, 90.0]
     np.testing.assert_array_equal(surveyor.position, [10.0, 10.0])
     assert surveyor.cell is model.ground[5, 5]

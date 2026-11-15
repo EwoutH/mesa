@@ -208,7 +208,15 @@ def _resolve(agent: Agent, followers, point) -> list:
         if state.get(follower._key) is None:
             follower._check_alignment(agent)
             follower._check_unique(agent, follower._space(agent))
-        targets.append((follower, follower._resolve(agent, point)))
+        try:
+            cell = follower._resolve(agent, point)
+        except ValueError as e:
+            raise ValueError(
+                f"{type(agent).__name__}.{follower.name} follows "
+                f"{follower._primary(agent).name}, but model.{follower.space_name} has no "
+                f"cell at {np.asarray(point).tolist()}, so the move is refused."
+            ) from e
+        targets.append((follower, cell))
     return targets
 
 
