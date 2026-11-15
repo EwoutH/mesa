@@ -387,13 +387,16 @@ class CellLocation(_Location):
     def _set_follower(self, agent: Agent, cell: Cell | None) -> None:
         """Move the primary location to the center of the cell."""
         primary = self._primary(agent)
+        placed = agent.__dict__.get(self._key) is not None
         if cell is None:
+            if not placed:
+                return  # already out, for instance after Agent.remove
             raise ValueError(
                 f"{type(agent).__name__}.{self.name} follows {primary.name}; set "
                 f"{primary.name} to None to take the agent out of both."
             )
         self._check_space(agent, cell)
-        if agent.__dict__.get(self._key) is None:
+        if not placed:
             # Before the round trip below, so a misdeclared pair gets its own error
             self._check_alignment(agent)
             self._check_unique(agent, self._space(agent))

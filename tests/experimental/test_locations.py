@@ -650,6 +650,21 @@ def test_follower_rules(model):
     bird.position = None
     assert bird.cell is None
     assert bird not in model.ground[0, 0].agents
+    bird.cell = None  # already out: nothing to do
+
+
+def test_cell_agent_with_a_following_cell_can_be_removed(model):
+    """CellAgent.remove clears cell after the agent left; that is fine."""
+
+    class Hybrid(CellAgent):
+        position = ContinuousLocation("air")
+        cell = CellLocation("ground", follows=position)
+
+    hybrid = Hybrid(model)
+    hybrid.position = [2.5, 2.5]
+    hybrid.remove()
+    assert hybrid not in model.air.active_agents
+    assert hybrid not in model.ground[1, 1].agents
 
 
 def test_network_cannot_follow_or_be_followed(model):
