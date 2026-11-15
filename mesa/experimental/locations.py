@@ -316,8 +316,10 @@ class CellLocation(_Location):
             nothing checks that their cells line up. If either space is a torus,
             they must wrap in the same place: a torus grid must have the same
             bounds as the other space and be a torus too, and a grid in a torus
-            space must lie within it. The first move raises ``ValueError`` if a
-            grid follows a coarser grid or the tori don't match.
+            space must lie within it; a torus HexGrid can't follow. The first move
+            raises ``ValueError`` if a grid follows a coarser grid or the tori
+            don't match. Assigning a cell that the primary can't lead back to
+            raises ``ValueError``.
 
     Notes:
         Without ``follows``, this is what ``CellAgent.cell`` does, under a name of
@@ -408,20 +410,22 @@ class CellLocation(_Location):
             # Before the round trip below, so a misdeclared pair gets its own error
             self._check_alignment(agent)
             self._check_unique(agent, self._space(agent))
+        # The primary moves to the point it would store for this cell's center: a
+        # cell there, or the point wrapped by a torus. This location then follows
+        # that point, which must lead back to this cell.
         if isinstance(primary, CellLocation):
-            # The primary snaps to its cell at this cell's center, and this location
-            # then follows the center of that cell, which can be another cell
             target = primary._resolve(agent, cell.position)
-            if self._resolve(agent, target.position) is not cell:
-                raise ValueError(
-                    f"{type(agent).__name__}.{self.name} follows {primary.name}, a "
-                    f"cell of model.{primary.space_name}, so it can only be a cell of "
-                    f"model.{self.space_name} at the center of such a cell, which "
-                    f"{cell.coordinate} is not."
-                )
-            primary._set(agent, target)
-            return
-        primary._set(agent, cell.position)
+            point = target.position
+        else:
+            target = point = primary._wrap(agent, cell.position)
+        if self._resolve(agent, point) is not cell:
+            raise ValueError(
+                f"{type(agent).__name__}.{self.name} follows {primary.name} in "
+                f"model.{primary.space_name}, where cell {cell.coordinate} of "
+                f"model.{self.space_name} can't be reached: its center leads to "
+                "another cell."
+            )
+        primary._set(agent, target)
 
     def _check_unique(self, agent: Agent, space) -> None:
         """Refuse a second cell in a space: the agent would count twice there."""
@@ -483,6 +487,13 @@ class CellLocation(_Location):
                 skip_file_prefixes=(__file__,),
             )
             return
+        if pair[1] == "hex" and getattr(space, "torus", False):
+            raise ValueError(
+                f"{type(agent).__name__}.{self.name} follows {primary.name}, but "
+                f"model.{self.space_name} is a torus HexGrid. A HexGrid has no cell "
+                "size or origin to check where it wraps, so it can only follow when "
+                "it isn't a torus."
+            )
         if pair == ("grid", "grid") and any(
             size < outer_size * (1 - 1e-9)
             for size, outer_size in zip(
@@ -585,6 +596,15 @@ class ContinuousLocation(_Location):
             self._set,
             doc=f"The point of this agent's {self.name!r} location, or None.",
         )
+
+    def _wrap(self, agent: Agent, value) -> np.ndarray:
+        """Return the point that writing a value would store, wrapped by a torus."""
+        handle = agent.__dict__.get(self._key)
+        space = self._space(agent) if handle is None else handle.space
+        point = np.array(value, dtype=float)
+        if space.torus and not space.in_bounds(point):
+            point = space.torus_correct(point)
+        return point
 
     def _set(self, agent: Agent, value) -> None:
         state = agent.__dict__

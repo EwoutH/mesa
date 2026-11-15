@@ -508,7 +508,7 @@ def test_follower_of_a_cell_with_shifted_origins(model):
     agent.cell = model.ground[5, 5]
     before = agent.shifted
 
-    with pytest.raises(ValueError, match="center of such a cell"):
+    with pytest.raises(ValueError, match="can't be reached"):
         agent.shifted = model.offset[20, 20]
     assert agent.cell is model.ground[5, 5]
     assert agent.shifted is before
@@ -665,6 +665,27 @@ def test_cell_agent_with_a_following_cell_can_be_removed(model):
     hybrid.remove()
     assert hybrid not in model.air.active_agents
     assert hybrid not in model.ground[1, 1].agents
+
+
+def test_hex_followers_keep_the_assigned_cell_or_raise(model):
+    """A torus HexGrid can't follow; a bounded one under a torus raises if unreachable."""
+
+    class Bee(Agent):
+        position = ContinuousLocation("air")
+        comb = CellLocation("hexes", follows=position)
+
+    model.air = ContinuousSpace([[0, 10], [0, 10]], torus=True, random=model.random)
+    model.hexes = HexGrid((6, 6), torus=True, random=model.random)
+    with pytest.raises(ValueError, match="torus HexGrid"):
+        Bee(model).position = [9.5, 9.5]
+
+    # this hex's center lies outside the air, which wraps it to another hex
+    model.hexes = HexGrid((10, 10), random=model.random)
+    bee = Bee(model)
+    with pytest.raises(ValueError, match="can't be reached"):
+        bee.comb = model.hexes[9, 9]
+    assert bee.position is None
+    assert bee not in model.hexes[9, 9].agents
 
 
 def test_network_cannot_follow_or_be_followed(model):
