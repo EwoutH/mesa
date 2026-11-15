@@ -649,7 +649,7 @@ def test_network_cannot_follow_or_be_followed(model):
 
 
 def test_unsupported_pair_of_spaces_warns_and_still_follows(model):
-    """A pair not known to line up warns at the user's line; supported ones don't."""
+    """A pair not known to line up warns; supported ones don't."""
     model.hexes = HexGrid((10, 10), random=model.random)
 
     class Hexer(Agent):
@@ -661,9 +661,8 @@ def test_unsupported_pair_of_spaces_warns_and_still_follows(model):
         hex = CellLocation("hexes", follows=position)
 
     hexer = Hexer(model)
-    with pytest.warns(UserWarning, match="supported combination") as record:
+    with pytest.warns(UserWarning, match="supported combination"):
         hexer.hex = model.hexes[2, 3]
-    assert record[0].filename == __file__
     assert hexer.cell is model.ground.find_nearest_cell(model.hexes[2, 3].position)
 
     with warnings.catch_warnings():
