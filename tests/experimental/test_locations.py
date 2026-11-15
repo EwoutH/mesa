@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from mesa import Agent, Model
-from mesa.discrete_space import HexGrid, Network, OrthogonalMooreGrid
+from mesa.discrete_space import CellAgent, HexGrid, Network, OrthogonalMooreGrid
 from mesa.exceptions import CellFullException
 from mesa.experimental.continuous_space import ContinuousSpace, ContinuousSpaceAgent
 from mesa.experimental.locations import CellLocation, ContinuousLocation
@@ -19,7 +19,7 @@ class Citizen(Agent):
     """An agent with independent locations in several spaces."""
 
     home = CellLocation("ground")
-    work = CellLocation("ground")
+    work = CellLocation("districts")
     view = ContinuousLocation("opinion")
     lifestyle = ContinuousLocation("traits")
 
@@ -92,14 +92,31 @@ def test_cell_location_full_cell_keeps_agent_in_place(model):
     assert citizen in grid[0, 0].agents
 
 
-def test_several_cells_per_agent(model):
-    """One agent can hold several cells in the same space."""
-    citizen = Citizen(model)
-    citizen.home = model.ground[1, 1]
-    citizen.work = model.ground[9, 9]
+def test_one_cell_per_agent_in_a_discrete_space(model):
+    """A second cell in a space raises, so an agent never counts twice there."""
 
-    assert citizen in model.ground[1, 1].agents
-    assert citizen in model.ground[9, 9].agents
+    class Resident(Agent):
+        home = CellLocation("ground")
+        work = CellLocation("ground")
+
+    resident = Resident(model)
+    resident.home = model.ground[1, 1]
+    for target in (model.ground[1, 1], model.ground[9, 9]):
+        with pytest.raises(ValueError, match="at most one cell"):
+            resident.work = target
+        assert resident.work is None
+        assert model.ground[1, 1].agents == [resident]
+        assert resident not in model.ground[9, 9].agents
+
+    # the same for a CellAgent's own cell
+    class Settler(CellAgent):
+        home = CellLocation("ground")
+
+    settler = Settler(model)
+    settler.cell = model.ground[2, 2]
+    with pytest.raises(ValueError, match="already has cell"):
+        settler.home = model.ground[2, 2]
+    assert model.ground[2, 2].agents == [settler]
 
 
 def test_cell_location_refuses_cells_of_another_space(model):
@@ -285,12 +302,12 @@ def test_remove_leaves_every_location(model):
     """Removing an agent takes it out of every space it was placed in."""
     citizen = Citizen(model)
     citizen.home = model.ground[1, 1]
-    citizen.work = model.ground[9, 9]
+    citizen.work = model.districts[2, 2]
     citizen.view = [0.0, 0.0]
 
     citizen.remove()
     assert citizen not in model.ground[1, 1].agents
-    assert citizen not in model.ground[9, 9].agents
+    assert citizen not in model.districts[2, 2].agents
     assert citizen not in model.opinion.active_agents
 
 
@@ -600,6 +617,12 @@ def test_follower_declaration_errors():
         class Duck(Bird):
             position = ContinuousLocation("water")
 
+    with pytest.raises(TypeError, match="same space"):
+
+        class Shadow(Agent):
+            home = CellLocation("ground")
+            shadow = CellLocation("ground", follows=home)
+
 
 def test_follower_of_a_location_on_a_base_class(model):
     """Base.name follows a location declared on a base class."""
@@ -687,8 +710,10 @@ def test_followers_stay_consistent_under_random_moves():
     )
     surveyors = [Surveyor(model) for _ in range(20)]
 
+    cells = [*model.ground.all_cells, *model.districts.all_cells]
+
     def snapshot():
-        return [
+        locations = [
             (
                 None if s.position is None else tuple(s.position),
                 s.cell,
@@ -696,6 +721,8 @@ def test_followers_stay_consistent_under_random_moves():
             )
             for s in surveyors
         ]
+        # the order of occupants too, since seeded choices depend on it
+        return locations, [list(cell.agents) for cell in cells]
 
     def check():
         for s in surveyors:

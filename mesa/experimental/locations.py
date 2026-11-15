@@ -180,6 +180,11 @@ def _declarations(cls: type) -> tuple[dict, dict, dict]:
                 f"{where} follows {primary.name}, which follows {root} itself; "
                 f"follow {root} directly."
             )
+        if primary.space_name == location.space_name:
+            raise TypeError(
+                f"{where} follows {primary.name} in the same space, "
+                f"model.{location.space_name}; an agent has one cell per space."
+            )
         followers.setdefault(primary.name, []).append(location)
         primaries[location.name] = primary
 
@@ -202,6 +207,7 @@ def _resolve(agent: Agent, followers, point) -> list:
     for follower in followers:
         if state.get(follower._key) is None:
             follower._check_alignment(agent)
+            follower._check_unique(agent, follower._space(agent))
         targets.append((follower, follower._resolve(agent, point)))
     return targets
 
@@ -307,7 +313,10 @@ class CellLocation(_Location):
 
     Notes:
         Without ``follows``, this is what ``CellAgent.cell`` does, under a name of
-        your choosing, so an agent can have several cells, in one or more spaces.
+        your choosing, so an agent can have cells in several spaces. An agent has
+        at most one cell per space: placing it in a space where it already has a
+        cell, through another location or as a ``CellAgent``, raises
+        ``ValueError``, since it would count twice there.
     """
 
     def _property(self) -> property:
@@ -316,6 +325,7 @@ class CellLocation(_Location):
         set_location = self._set
         space_name = self.space_name
         check_space = self._check_space
+        check_unique = self._check_unique
 
         def set_cell(agent: Agent, cell: Cell | None) -> None:
             # Fast path for a cell that nothing follows, as in CellAgent
@@ -327,6 +337,8 @@ class CellLocation(_Location):
                 space = getattr(agent.model, space_name, None)
                 if space is None or space._cells.get(cell.coordinate) is not cell:
                     check_space(agent, cell)  # raises
+                if old is None:
+                    check_unique(agent, space)
                 cell.add_agent(agent)
                 if old is not None:
                     old.remove_agent(agent)
@@ -357,6 +369,8 @@ class CellLocation(_Location):
         if cell is old:
             return
         self._check_space(agent, cell)
+        if old is None:
+            self._check_unique(agent, self._space(agent))
 
         if not followers:
             # The single-space path, as in CellAgent
@@ -382,6 +396,7 @@ class CellLocation(_Location):
         if agent.__dict__.get(self._key) is None:
             # Before the round trip below, so a misdeclared pair gets its own error
             self._check_alignment(agent)
+            self._check_unique(agent, self._space(agent))
         if isinstance(primary, CellLocation):
             # The primary snaps to its cell at this cell's center, and this location
             # then follows the center of that cell, which can be another cell
@@ -396,6 +411,24 @@ class CellLocation(_Location):
             primary._set(agent, target)
             return
         primary._set(agent, cell.position)
+
+    def _check_unique(self, agent: Agent, space) -> None:
+        """Refuse a second cell in a space: the agent would count twice there."""
+        state = agent.__dict__
+        others = [
+            (other.name, state.get(other._key))
+            for other in agent._mesa_locations
+            if other is not self and isinstance(other, CellLocation)
+        ]
+        if "cell" not in {location.name for location in agent._mesa_locations}:
+            others.append(("cell", getattr(agent, "cell", None)))  # as a CellAgent
+        for name, cell in others:
+            if cell is not None and space._cells.get(cell.coordinate) is cell:
+                raise ValueError(
+                    f"{type(agent).__name__}.{self.name} would put the agent in "
+                    f"model.{self.space_name}, where it already has {name}: an "
+                    "agent has at most one cell in a discrete space."
+                )
 
     def _check_space(self, agent: Agent, cell: Cell) -> None:
         """Refuse a cell that is not in this location's space."""
