@@ -38,7 +38,7 @@ class AbstractRenderer(ABC):
     def _get_agent_pos(self, agent, space):
         """Get agent position based on space type."""
         if isinstance(space, DiscreteSpace):
-            cell = space._cell_of(agent) or agent.cell
+            cell = space._cell_of(agent)
             # Orthogonal grids are drawn in cell coordinates
             if isinstance(space, OrthogonalGrid):
                 return cell.coordinate

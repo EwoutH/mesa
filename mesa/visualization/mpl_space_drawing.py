@@ -112,7 +112,7 @@ def collect_agent_data(
     def get_agent_pos(agent, space):
         """Helper function to get the agent position depending on the grid type."""
         if isinstance(space, DiscreteSpace):
-            cell = space._cell_of(agent) or agent.cell
+            cell = space._cell_of(agent)
             # Orthogonal grids are drawn in cell coordinates
             if isinstance(space, OrthogonalGrid):
                 agent_x, agent_y = cell.coordinate

@@ -175,7 +175,7 @@ class ContinuousSpace[A: ContinuousSpaceAgent]:
 
         """
         holders = self._holders
-        index = (holders.pop(agent, agent) if holders else agent)._mesa_index
+        index = holders.pop(agent, agent)._mesa_index
         last_index = self._n_agents - 1
 
         # If the removed agent isn't already the last one, swap the last one into its place
@@ -292,8 +292,6 @@ class ContinuousSpace[A: ContinuousSpaceAgent]:
 
     def _indices(self, agents: Iterable[Agent]) -> list[int]:
         holders = self._holders
-        if not holders:
-            return [a._mesa_index for a in agents]
         return [holders.get(a, a)._mesa_index for a in agents]
 
     def _index_of(self, agent: Agent) -> int | None:

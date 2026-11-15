@@ -64,11 +64,6 @@ class _Location:
                 f"follows takes the location itself, not its name: write "
                 f"follows={follows}, without quotes."
             )
-        if follows is not None and not isinstance(follows, _Location | property):
-            raise TypeError(
-                "follows takes another location of the same agent, such as "
-                f"follows=position, got {follows!r}."
-            )
         self.space_name = space
         self.follows = follows
         self._installed: property | None = None
@@ -92,12 +87,6 @@ class _Location:
         self._installed = self._property()
         setattr(owner, name, self._installed)
 
-    def __repr__(self) -> str:
-        args = [repr(self.space_name)]
-        if self.follows is not None:
-            args.append(f"follows={getattr(self.follows, 'name', self.follows)}")
-        return f"{type(self).__name__}({', '.join(args)})"
-
     def _property(self) -> property:  # pragma: no cover
         raise NotImplementedError
 
@@ -105,22 +94,10 @@ class _Location:
         raise NotImplementedError
 
     def _space(self, agent: Agent):
-        try:
-            return getattr(agent.model, self.space_name)
-        except AttributeError:
-            raise AttributeError(
-                f"{type(agent).__name__}.{self.name} lives in model.{self.space_name}, "
-                f"but the model has no attribute {self.space_name!r}."
-            ) from None
+        return getattr(agent.model, self.space_name)
 
     def _followers(self, agent: Agent) -> tuple[CellLocation, ...]:
-        cls = type(agent)
-        try:
-            return self._followers_cache[cls]
-        except KeyError:
-            followers = _declarations(cls)[1].get(self.name, ())
-            self._followers_cache[cls] = followers
-            return followers
+        return self._followers_cache[type(agent)]
 
     def _primary(self, agent: Agent) -> _Location:
         """Return the location this one follows."""
@@ -140,7 +117,8 @@ def _declarations(cls: type) -> tuple[dict, dict, dict]:
     """Return the locations of an agent class by name, their followers, and primaries.
 
     Checks that every followed location is a location of the class, and is not
-    itself a follower. Runs when the class is defined.
+    itself a follower. Runs when the class is defined, and records each
+    location's followers for the class.
     """
     cached = cls.__dict__.get("_mesa_location_declarations")
     if cached is not None:
@@ -188,11 +166,10 @@ def _declarations(cls: type) -> tuple[dict, dict, dict]:
         followers.setdefault(primary.name, []).append(location)
         primaries[location.name] = primary
 
-    declarations = (
-        locations,
-        {k: tuple(v) for k, v in followers.items()},
-        primaries,
-    )
+    followers = {k: tuple(v) for k, v in followers.items()}
+    for location in locations.values():
+        location._followers_cache[cls] = followers.get(location.name, ())
+    declarations = (locations, followers, primaries)
     cls._mesa_location_declarations = declarations
     return declarations
 
@@ -287,6 +264,20 @@ def _bounds(space) -> list[tuple[float, float]] | None:
     return None
 
 
+def _to_point(space: ContinuousSpace, value) -> np.ndarray:
+    """Return a value as a point in a space, wrapped by a torus; raise outside it."""
+    point = np.array(value, dtype=float)
+    if point.shape != (space.ndims,):
+        raise ValueError(
+            f"Expected a point with {space.ndims} coordinates, got {value!r}."
+        )
+    if not space.in_bounds(point):
+        if not space.torus:
+            raise ValueError(f"point {value} is outside the bounds of the space")
+        point = space.torus_correct(point)
+    return point
+
+
 def _leave(agent: Agent, followers) -> None:
     state = agent.__dict__
     for follower in followers:
@@ -309,17 +300,12 @@ class CellLocation(_Location):
         follows: another location of the same agent, declared above this one,
             or ``Base.name`` for one declared on a base class. The agent's cell is
             then always the cell of ``space`` at that location, and assigning a
-            cell moves the other location to its center.
-            A cell of a grid, hex grid or Voronoi grid can follow a point, and a
-            grid cell can follow a grid cell that is no larger. A Network can't
-            follow or be followed (``TypeError``). Other combinations warn, since
-            nothing checks that their cells line up. If either space is a torus,
-            they must wrap in the same place: a torus grid must have the same
-            bounds as the other space and be a torus too, and a grid in a torus
-            space must lie within it; a torus HexGrid can't follow. The first move
-            raises ``ValueError`` if a grid follows a coarser grid or the tori
-            don't match. Assigning a cell that the primary can't lead back to
-            raises ``ValueError``.
+            cell moves the other location to its center, or raises
+            ``ValueError`` if that center leads to another cell. Grid, hex and
+            Voronoi cells can follow a point, and a grid cell a grid cell no
+            larger than itself. A Network can't take part (``TypeError``), other
+            pairs warn, and spaces that wrap in different places raise
+            ``ValueError`` on the first move.
 
     Notes:
         Without ``follows``, this is what ``CellAgent.cell`` does, under a name of
@@ -338,8 +324,8 @@ class CellLocation(_Location):
         check_unique = self._check_unique
 
         def set_cell(agent: Agent, cell: Cell | None) -> None:
-            # Fast path for a cell that nothing follows, as in CellAgent
-            if cell is not None and followers_cache.get(type(agent)) == ():
+            # A cell that nothing follows, as in CellAgent
+            if cell is not None and not followers_cache[type(agent)]:
                 state = agent.__dict__
                 old = state.get(key)
                 if cell is old:
@@ -381,15 +367,6 @@ class CellLocation(_Location):
         self._check_space(agent, cell)
         if old is None:
             self._check_unique(agent, self._space(agent))
-
-        if not followers:
-            # The single-space path, as in CellAgent
-            cell.add_agent(agent)
-            if old is not None:
-                old.remove_agent(agent)
-            state[self._key] = cell
-            return
-
         targets = [(self, cell), *_resolve(agent, followers, cell.position)]
         _enter(agent, targets)
         _commit(agent, targets)
@@ -417,7 +394,7 @@ class CellLocation(_Location):
             target = primary._resolve(agent, cell.position)
             point = target.position
         else:
-            target = point = primary._wrap(agent, cell.position)
+            target = point = _to_point(primary._space(agent), cell.position)
         if self._resolve(agent, point) is not cell:
             raise ValueError(
                 f"{type(agent).__name__}.{self.name} follows {primary.name} in "
@@ -597,15 +574,6 @@ class ContinuousLocation(_Location):
             doc=f"The point of this agent's {self.name!r} location, or None.",
         )
 
-    def _wrap(self, agent: Agent, value) -> np.ndarray:
-        """Return the point that writing a value would store, wrapped by a torus."""
-        handle = agent.__dict__.get(self._key)
-        space = self._space(agent) if handle is None else handle.space
-        point = np.array(value, dtype=float)
-        if space.torus and not space.in_bounds(point):
-            point = space.torus_correct(point)
-        return point
-
     def _set(self, agent: Agent, value) -> None:
         state = agent.__dict__
         handle = state.get(self._key)
@@ -629,16 +597,7 @@ class ContinuousLocation(_Location):
                 )
         else:
             space = handle.space
-        point = np.array(value, dtype=float)
-        if point.shape != (space.ndims,):
-            raise ValueError(
-                f"Expected a point with {space.ndims} coordinates, got {value!r}."
-            )
-        if not space.in_bounds(point):
-            if space.torus:
-                point = space.torus_correct(point)
-            else:
-                raise ValueError(f"point {value} is outside the bounds of the space")
+        point = _to_point(space, value)
 
         # Followers resolve and enter their cells before anything changes
         targets = _resolve(agent, followers, point) if followers else ()

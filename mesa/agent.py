@@ -25,24 +25,13 @@ def _collect_locations(cls: type) -> tuple:
 
     Each class records the locations it declares itself in
     ``_mesa_declared_locations`` (see mesa.experimental.locations). For each name,
-    the location that counts is the one attribute lookup finds, so a subclass can
-    redefine a location, and a plain attribute of the same name hides it.
+    the class first in the MRO wins, as in attribute lookup.
     """
-    mro = cls.__mro__
-    names = dict.fromkeys(
-        location.name
-        for klass in reversed(mro)
-        for location in klass.__dict__.get("_mesa_declared_locations", ())
-    )
-    locations = []
-    for name in names:
-        owner = next(klass for klass in mro if name in klass.__dict__)
-        locations.extend(
-            location
-            for location in owner.__dict__.get("_mesa_declared_locations", ())
-            if location.name == name
-        )
-    return tuple(locations)
+    locations = {}
+    for klass in reversed(cls.__mro__):
+        for location in klass.__dict__.get("_mesa_declared_locations", ()):
+            locations[location.name] = location
+    return tuple(locations.values())
 
 
 class Agent[M: Model]:

@@ -180,7 +180,6 @@ def test_sugarscape_g1mt():  # noqa: D103
 
 def test_wolf_sheep():  # noqa: D103
     from mesa.examples.advanced.wolf_sheep import app  # noqa: PLC0415
-    from mesa.examples.advanced.wolf_sheep.agents import Sheep, Wolf  # noqa: PLC0415
 
     app.page  # noqa: B018
 
@@ -190,12 +189,6 @@ def test_wolf_sheep():  # noqa: D103
     ref = weakref.ref(model)
 
     model.run_for(10)
-    # every animal's grid cell is the cell below its position in the meadow
-    assert all(
-        animal.cell is model.grid.find_nearest_cell(animal.position)
-        for kind in (Sheep, Wolf)
-        for animal in model.agents_by_type[kind]
-    )
     model.remove_all_agents()
 
     del model

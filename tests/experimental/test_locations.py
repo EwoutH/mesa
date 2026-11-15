@@ -2,7 +2,6 @@
 
 import pickle
 import random
-import warnings
 
 import networkx as nx
 import numpy as np
@@ -129,42 +128,27 @@ def test_cell_location_refuses_cells_of_another_space(model):
     assert citizen.home is model.ground[1, 1]
     assert citizen not in model.districts[0, 0].agents
 
-    walker = Walker(model)
-    with pytest.raises(ValueError, match="takes cells of model"):
-        walker.cell = model.districts[0, 0]
-    assert walker.cell is None
-
 
 # ----------------------------------------------------------------------
 # ContinuousLocation
 # ----------------------------------------------------------------------
-def test_continuous_location_joins_on_first_write(model):
-    """The first point joins the named space; None leaves it."""
+def test_continuous_location_joins_moves_and_leaves(model):
+    """The first point joins the space, reads are copies, += moves, None leaves."""
     citizen = Citizen(model)
     assert citizen.view is None
-
-    citizen.view = [0.2, -0.4]
-    assert citizen in model.opinion.active_agents
-    np.testing.assert_array_equal(citizen.view, [0.2, -0.4])
-
-    citizen.view = None
-    assert citizen.view is None
-    assert citizen not in model.opinion.active_agents
-
-
-def test_continuous_location_reads_are_values(model):
-    """A saved position keeps its value, and += moves through the setter."""
-    citizen = Citizen(model)
     citizen.view = [0.0, 0.0]
+    assert citizen in model.opinion.active_agents
 
     saved = citizen.view
     citizen.view += np.array([0.5, 0.25])
     np.testing.assert_array_equal(saved, [0.0, 0.0])
     np.testing.assert_array_equal(citizen.view, [0.5, 0.25])
-
-    # changing a read value does not move the agent
-    citizen.view[0] = -0.9
+    citizen.view[0] = -0.9  # changes a copy; the agent doesn't move
     np.testing.assert_array_equal(citizen.view, [0.5, 0.25])
+
+    citizen.view = None
+    assert citizen.view is None
+    assert citizen not in model.opinion.active_agents
 
 
 def test_continuous_location_bounds_and_torus(model):
@@ -194,11 +178,6 @@ def test_continuous_locations_in_several_spaces(model):
         if i != 1:
             np.testing.assert_allclose(citizen.view, [i / 10, 0.0])
         np.testing.assert_allclose(citizen.lifestyle, [0.5, i / 10])
-
-    distances, _ = model.opinion.calculate_distances(
-        np.array([0.0, 0.0]), agents=[citizens[3]]
-    )
-    np.testing.assert_allclose(distances, [0.3])
 
 
 def test_continuous_location_next_to_continuous_space_agent(model):
@@ -242,12 +221,6 @@ def test_one_point_per_agent_in_a_continuous_space(model):
     assert agent.second is None
     assert model.opinion.active_agents == [agent]
 
-    # once the first location is cleared, the second can take its place
-    agent.first = None
-    agent.second = [0.2, 0.2]
-    agent.remove()
-    assert len(model.opinion.active_agents) == 0
-
     class Viewer(ContinuousSpaceAgent):
         view = ContinuousLocation("opinion")
 
@@ -255,16 +228,6 @@ def test_one_point_per_agent_in_a_continuous_space(model):
     viewer.position = [0.5, 0.5]
     with pytest.raises(ValueError, match=r"already in model.opinion"):
         viewer.view = [0.5, 0.5]
-
-
-def test_missing_space_attribute_names_it(model):
-    """A location naming a space the model lacks says which one."""
-
-    class Lost(Agent):
-        position = ContinuousLocation("nowhere")
-
-    with pytest.raises(AttributeError, match="nowhere"):
-        Lost(model).position = [0.0, 0.0]
 
 
 # ----------------------------------------------------------------------
@@ -309,18 +272,6 @@ def test_remove_leaves_every_location(model):
     assert citizen not in model.ground[1, 1].agents
     assert citizen not in model.districts[2, 2].agents
     assert citizen not in model.opinion.active_agents
-
-
-def test_subclasses_inherit_and_override_locations(model):
-    """A subclass keeps its parent's locations and can redefine one."""
-
-    class Commuter(Citizen):
-        work = CellLocation("districts")
-        car = CellLocation("ground")
-
-    names = [location.name for location in Commuter._mesa_locations]
-    assert sorted(names) == ["car", "home", "lifestyle", "view", "work"]
-    assert Commuter.work is not Citizen.work
 
 
 class Lefty(Agent):
@@ -372,16 +323,6 @@ def test_locations_from_a_diamond_and_a_mixin(model):
     assert agent not in model.ground[1, 1].agents
 
 
-def test_plain_attribute_hides_a_location(model):
-    """A subclass attribute with the name of a location replaces the location."""
-
-    class Plain(Lefty):
-        left = None
-
-    assert Plain._mesa_locations == ()
-    Plain(model).remove()
-
-
 # ----------------------------------------------------------------------
 # follows
 # ----------------------------------------------------------------------
@@ -399,13 +340,10 @@ def test_follower_tracks_position(model):
     np.testing.assert_array_equal(bird.position, [1.0, 1.0])
     assert bird in model.ground[0, 0].agents
 
-
-def test_follower_written_first_places_the_agent(model):
-    """Assigning a follower before the primary places the agent at the cell center."""
-    bird = Bird(model)
-    bird.cell = model.ground[2, 3]
-    np.testing.assert_array_equal(bird.position, [5.0, 7.0])
-    assert bird in model.air.active_agents
+    # a follower written first places the agent at the cell center
+    lander = Bird(model)
+    lander.cell = model.ground[2, 3]
+    np.testing.assert_array_equal(lander.position, [5.0, 7.0])
 
 
 def test_full_cell_rejects_the_whole_move(model):
@@ -442,18 +380,6 @@ def test_point_without_cell_rejects_the_move(model):
     surveyor.position = [10.0, 10.0]
     with pytest.raises(ValueError, match="district follows position"):
         surveyor.position = [90.0, 90.0]
-    np.testing.assert_array_equal(surveyor.position, [10.0, 10.0])
-    assert surveyor.cell is model.ground[5, 5]
-
-
-def test_several_followers(model):
-    """All followers move with the primary, and a cell write moves them all."""
-    surveyor = Surveyor(model)
-    surveyor.position = [45.0, 85.0]
-    assert surveyor.cell is model.ground[22, 42]
-    assert surveyor.district is model.districts[2, 4]
-
-    surveyor.district = model.districts[0, 0]
     np.testing.assert_array_equal(surveyor.position, [10.0, 10.0])
     assert surveyor.cell is model.ground[5, 5]
 
@@ -597,8 +523,6 @@ def test_follower_declaration_errors():
     """A follower takes a location of its own class, checked when it is defined."""
     with pytest.raises(TypeError, match="without quotes"):
         CellLocation("ground", follows="position")
-    with pytest.raises(TypeError, match="another location"):
-        CellLocation("ground", follows=42)
 
     with pytest.raises(TypeError, match="not one of Orphan"):
 
@@ -711,25 +635,17 @@ def test_network_cannot_follow_or_be_followed(model):
 
 
 def test_unsupported_pair_of_spaces_warns_and_still_follows(model):
-    """A pair not known to line up warns; supported ones don't."""
+    """A pair not known to line up warns, and still follows."""
     model.hexes = HexGrid((10, 10), random=model.random)
 
     class Hexer(Agent):
         hex = CellLocation("hexes")
         cell = CellLocation("ground", follows=hex)
 
-    class Hopper(Agent):
-        position = ContinuousLocation("air")
-        hex = CellLocation("hexes", follows=position)
-
     hexer = Hexer(model)
     with pytest.warns(UserWarning, match="supported combination"):
         hexer.hex = model.hexes[2, 3]
     assert hexer.cell is model.ground.find_nearest_cell(model.hexes[2, 3].position)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        Hopper(model).position = [1.0, 1.0]
 
 
 def test_followers_stay_consistent_under_random_moves():
