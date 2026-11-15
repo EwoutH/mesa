@@ -1,5 +1,4 @@
 from mesa.examples.advanced.alliance_formation.model import MultiLevelAllianceModel
-from mesa.examples.advanced.birds_and_trees.model import BirdsAndTrees
 from mesa.examples.advanced.epstein_civil_violence.model import EpsteinCivilViolence
 from mesa.examples.advanced.pd_grid.model import PdGrid
 from mesa.examples.advanced.sugarscape_g1mt.model import SugarscapeG1mt
@@ -12,7 +11,6 @@ from mesa.examples.basic.virus_on_network.model import VirusOnNetwork
 from mesa.examples.experimental.tram_model.model import TransitSystem
 
 __all__ = [
-    "BirdsAndTrees",
     "BoidFlockers",
     "BoltzmannWealth",
     "ConwaysGameOfLife",
