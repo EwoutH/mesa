@@ -172,6 +172,13 @@ class Grid(DiscreteSpace[T]):
         self._mapping = (origins, sizes)
         self.cell_size = np.array(sizes)
         self.origin = np.array(origins)
+        self._freeze_mapping()
+
+    def _freeze_mapping(self) -> None:
+        # Lookups use _mapping, so changing these in place would move cell centers
+        # away from the cells that find_nearest_cell returns
+        self.cell_size.flags.writeable = False
+        self.origin.flags.writeable = False
 
     def create_property_layer(
         self,
@@ -500,6 +507,7 @@ class Grid(DiscreteSpace[T]):
         without a setter so the read-only constraint survives the round trip.
         """
         super().__setstate__(state)
+        self._freeze_mapping()  # pickling doesn't keep arrays read-only
         base_klass = self.cell_klass
         self.cell_klass = type(
             "GridCell",
