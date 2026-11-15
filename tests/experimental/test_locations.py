@@ -17,8 +17,8 @@ from mesa.experimental.locations import CellLocation, ContinuousLocation
 class Citizen(Agent):
     """An agent with independent locations in several spaces."""
 
-    home = CellLocation()
-    work = CellLocation()
+    home = CellLocation("ground")
+    work = CellLocation("ground")
     view = ContinuousLocation("opinion")
     lifestyle = ContinuousLocation("traits")
 
@@ -80,7 +80,7 @@ def test_cell_location_moves_and_leaves(model):
 
 def test_cell_location_full_cell_keeps_agent_in_place(model):
     """A move into a full cell raises and leaves the agent where it was."""
-    grid = OrthogonalMooreGrid((3, 3), capacity=1, random=model.random)
+    grid = model.ground = OrthogonalMooreGrid((3, 3), capacity=1, random=model.random)
     blocker, citizen = Citizen(model), Citizen(model)
     blocker.home = grid[1, 1]
     citizen.home = grid[0, 0]
@@ -92,7 +92,7 @@ def test_cell_location_full_cell_keeps_agent_in_place(model):
 
 
 def test_several_cells_per_agent(model):
-    """One agent can hold several cells, in the same space and in others."""
+    """One agent can hold several cells in the same space."""
     citizen = Citizen(model)
     citizen.home = model.ground[1, 1]
     citizen.work = model.ground[9, 9]
@@ -100,10 +100,21 @@ def test_several_cells_per_agent(model):
     assert citizen in model.ground[1, 1].agents
     assert citizen in model.ground[9, 9].agents
 
-    citizen.work = model.districts[0, 0]
-    assert citizen not in model.ground[9, 9].agents
-    assert citizen in model.districts[0, 0].agents
+
+def test_cell_location_refuses_cells_of_another_space(model):
+    """A cell of another space raises and leaves the agent where it was."""
+    citizen = Citizen(model)
+    citizen.home = model.ground[1, 1]
+
+    with pytest.raises(ValueError, match="takes cells of model"):
+        citizen.home = model.districts[0, 0]
     assert citizen.home is model.ground[1, 1]
+    assert citizen not in model.districts[0, 0].agents
+
+    walker = Walker(model)
+    with pytest.raises(ValueError, match="takes cells of model"):
+        walker.cell = model.districts[0, 0]
+    assert walker.cell is None
 
 
 # ----------------------------------------------------------------------
@@ -270,12 +281,12 @@ def test_remove_leaves_every_location(model):
     """Removing an agent takes it out of every space it was placed in."""
     citizen = Citizen(model)
     citizen.home = model.ground[1, 1]
-    citizen.work = model.districts[0, 0]
+    citizen.work = model.ground[9, 9]
     citizen.view = [0.0, 0.0]
 
     citizen.remove()
     assert citizen not in model.ground[1, 1].agents
-    assert citizen not in model.districts[0, 0].agents
+    assert citizen not in model.ground[9, 9].agents
     assert citizen not in model.opinion.active_agents
 
 
@@ -283,8 +294,8 @@ def test_subclasses_inherit_and_override_locations(model):
     """A subclass keeps its parent's locations and can redefine one."""
 
     class Commuter(Citizen):
-        work = CellLocation()
-        car = CellLocation()
+        work = CellLocation("districts")
+        car = CellLocation("ground")
 
     names = [location.name for location in Commuter._mesa_locations]
     assert sorted(names) == ["car", "home", "lifestyle", "view", "work"]

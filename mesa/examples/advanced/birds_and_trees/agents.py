@@ -7,7 +7,7 @@ from mesa.experimental.locations import CellLocation, ContinuousLocation
 class Tree(Agent):
     """A tree on the ground that grows fruit."""
 
-    cell = CellLocation()  # a plain cell: trees stay where they are
+    cell = CellLocation("ground")  # a cell of model.ground: trees stay put
 
     def __init__(self, model, cell, has_fruit=True):
         super().__init__(model)

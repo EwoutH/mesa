@@ -4,8 +4,8 @@ A location is an attribute declared on an agent class. Assigning to it places th
 agent in a space, and an agent can have as many locations as it needs::
 
     class Citizen(Agent):
-        home = CellLocation()  # a cell of any discrete space
-        district = CellLocation()
+        home = CellLocation("city")  # a cell of model.city
+        district = CellLocation("districts")
         view = ContinuousLocation("opinion")  # a point in model.opinion
 
     citizen.home = model.city[3, 4]  # joins the city grid
@@ -57,7 +57,7 @@ class _Location:
     agent out of its spaces.
     """
 
-    def __init__(self, space: str | None = None, *, follows: str | None = None):
+    def __init__(self, space: str, *, follows: str | None = None):
         self.space_name = space
         self.follows = follows
         self.name: str | None = None
@@ -79,7 +79,7 @@ class _Location:
         setattr(owner, name, self._property())
 
     def __repr__(self) -> str:
-        args = [repr(self.space_name)] if self.space_name is not None else []
+        args = [repr(self.space_name)]
         if self.follows is not None:
             args.append(f"follows={self.follows!r}")
         return f"{type(self).__name__}({', '.join(args)})"
@@ -221,11 +221,12 @@ class CellLocation(_Location):
 
     Assigning a cell places the agent in it: the agent counts toward the cell's
     capacity and shows up in ``cell.agents`` and neighborhood queries. Assigning
-    ``None`` takes it out. Reading returns the cell, or ``None``.
+    ``None`` takes it out. Reading returns the cell, or ``None``. A cell of another
+    space raises ``ValueError``.
 
     Args:
-        space: the name of the model attribute holding the space. Needed when the
-            location follows another one, or is followed by one.
+        space: the name of the model attribute holding the space, such as
+            ``"ground"`` for ``model.ground``.
         follows: the name of another location of the same agent that this one
             follows. The agent's cell is then always the cell of ``space`` at that
             location, and assigning a cell moves the other location to its center.
@@ -241,19 +242,12 @@ class CellLocation(_Location):
         your choosing, so an agent can have several cells, in one or more spaces.
     """
 
-    def __init__(self, space: str | None = None, *, follows: str | None = None):
-        """Create a cell location."""
-        if follows is not None and space is None:
-            raise TypeError(
-                "A CellLocation that follows another location needs the space to "
-                "find its cells in, e.g. CellLocation('ground', follows='position')."
-            )
-        super().__init__(space, follows=follows)
-
     def _property(self) -> property:
         key = self._key
         followers_cache = self._followers_cache
         set_location = self._set
+        space_name = self.space_name
+        check_space = self._check_space
 
         def set_cell(agent: Agent, cell: Cell | None) -> None:
             # Fast path for a cell that nothing follows, as in CellAgent
@@ -262,6 +256,9 @@ class CellLocation(_Location):
                 old = state.get(key)
                 if cell is old:
                     return
+                space = getattr(agent.model, space_name, None)
+                if space is None or space._cells.get(cell.coordinate) is not cell:
+                    check_space(agent, cell)  # raises
                 cell.add_agent(agent)
                 if old is not None:
                     old.remove_agent(agent)
@@ -291,6 +288,7 @@ class CellLocation(_Location):
             return
         if cell is old:
             return
+        self._check_space(agent, cell)
 
         if not followers:
             # The single-space path, as in CellAgent
@@ -312,13 +310,8 @@ class CellLocation(_Location):
                 f"{type(agent).__name__}.{self.name} follows {self.follows}; set "
                 f"{self.follows} to None to take the agent out of both."
             )
-        space = self._space(agent)
-        if space._cells.get(cell.coordinate) is not cell:
-            raise ValueError(
-                f"{type(agent).__name__}.{self.name} takes cells of model."
-                f"{self.space_name}, got a cell of another space."
-            )
-        if isinstance(primary, CellLocation) and primary.space_name is not None:
+        self._check_space(agent, cell)
+        if isinstance(primary, CellLocation):
             # The primary snaps to its cell at this cell's center, and this location
             # then follows the center of that cell, which can be another cell
             target = primary._resolve(agent, cell.position)
@@ -331,7 +324,15 @@ class CellLocation(_Location):
                 )
             primary._set(agent, target)
             return
-        primary._move_to(agent, cell.position)
+        primary._set(agent, cell.position)
+
+    def _check_space(self, agent: Agent, cell: Cell) -> None:
+        """Refuse a cell that is not in this location's space."""
+        if self._space(agent)._cells.get(cell.coordinate) is not cell:
+            raise ValueError(
+                f"{type(agent).__name__}.{self.name} takes cells of model."
+                f"{self.space_name}, got a cell of another space."
+            )
 
     def _check_alignment(self, agent: Agent) -> None:
         """Refuse a torus mismatch that would put the agent in the wrong cell.
@@ -343,8 +344,6 @@ class CellLocation(_Location):
         their own and stay allowed.
         """
         primary = self._primary(agent)
-        if primary.space_name is None:
-            return
         space = self._space(agent)
         outer = primary._space(agent)
         torus = getattr(space, "torus", False)
@@ -392,15 +391,6 @@ class CellLocation(_Location):
                 "Network, because a point is not on a node."
             )
         return space.find_nearest_cell(point)
-
-    def _move_to(self, agent: Agent, point) -> None:
-        """Move to the cell at a point, for a follower that was written."""
-        if self.space_name is None:
-            raise TypeError(
-                f"{type(agent).__name__}.{self.name} needs its space, e.g. "
-                f"CellLocation('grid'), to be moved through a location that follows it."
-            )
-        self._set(agent, self._resolve(agent, point))
 
 
 class _Handle:
@@ -501,5 +491,3 @@ class ContinuousLocation(_Location):
 
         if targets:
             _commit(agent, targets)
-
-    _move_to = _set
