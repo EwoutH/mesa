@@ -448,66 +448,50 @@ def test_follower_of_a_cell(model):
 
 
 class Zoomer(Agent):
-    """An agent on a coarse grid whose cell in a fine grid follows it."""
+    """An agent on a coarse grid with a cell in a fine grid that follows it."""
 
     district = CellLocation("districts")
     cell = CellLocation("ground", follows="district")
 
 
-def test_follower_of_a_coarser_cell_takes_only_reachable_cells(model):
-    """A fine cell that its coarse cell doesn't map back to raises, changing nothing."""
+def test_follower_finer_than_its_cell_primary_is_refused(model):
+    """A primary must be at least as detailed as its follower; nothing changes."""
     zoomer = Zoomer(model)
-    # the center of district (1, 1) is (30, 30), in ground cell (15, 15)
-    zoomer.cell = model.ground[15, 15]
-    assert zoomer.district is model.districts[1, 1]
-    assert zoomer.cell is model.ground[15, 15]
+    with pytest.raises(ValueError, match="larger cells"):
+        zoomer.district = model.districts[1, 1]
+    assert zoomer.district is None
+    assert zoomer.cell is None
+    assert zoomer not in model.districts[1, 1].agents
 
-    # the cell of another district moves the agent there
-    zoomer.cell = model.ground[25, 5]
-    assert zoomer.district is model.districts[2, 0]
-    assert zoomer.cell is model.ground[25, 5]
-
-    for target in (model.ground[2, 2], model.ground[24, 5]):
-        with pytest.raises(ValueError, match="center of such a cell"):
+    # also through the follower, whichever cell is written
+    for target in (model.ground[15, 15], model.ground[2, 2]):
+        with pytest.raises(ValueError, match="larger cells"):
             zoomer.cell = target
-        assert zoomer.district is model.districts[2, 0]
-        assert zoomer.cell is model.ground[25, 5]
-        assert zoomer in model.districts[2, 0].agents
+        assert zoomer.district is None
         assert zoomer not in target.agents
-        assert zoomer not in model.districts[0, 0].agents
-
-    # also on first placement
-    newcomer = Zoomer(model)
-    with pytest.raises(ValueError, match="center of such a cell"):
-        newcomer.cell = model.ground[2, 2]
-    assert newcomer.district is None
-    assert newcomer.cell is None
 
 
 def test_follower_of_a_cell_with_shifted_origins(model):
-    """Which cells are reachable depends on the grids' origins."""
+    """A cell that its primary maps back to another cell raises, changing nothing."""
+    # Same cell size, offset by half a cell: each offset cell center is on a
+    # ground cell boundary, so most offset cells can't be reached
     model.offset = OrthogonalMooreGrid(
-        (40, 40), cell_size=1.0, origin=(0.5, 0.5), random=model.random
+        (49, 49), cell_size=2.0, origin=(1.0, 1.0), random=model.random
     )
 
     class Shifted(Agent):
-        district = CellLocation("districts")
-        cell = CellLocation("offset", follows="district")
+        cell = CellLocation("ground")
+        shifted = CellLocation("offset", follows="cell")
 
     agent = Shifted(model)
-    # the center of district (0, 0) is (10, 10), in offset cell (9, 9)
-    agent.district = model.districts[0, 0]
-    assert agent.cell is model.offset[9, 9]
-    agent.cell = model.offset[9, 9]
-    assert agent.district is model.districts[0, 0]
+    agent.cell = model.ground[5, 5]
+    before = agent.shifted
 
-    # offset cell (10, 10) is centered at (11, 11), also in district (0, 0)
     with pytest.raises(ValueError, match="center of such a cell"):
-        agent.cell = model.offset[10, 10]
-    assert agent.cell is model.offset[9, 9]
-
-    agent.cell = model.offset[29, 29]
-    assert agent.district is model.districts[1, 1]
+        agent.shifted = model.offset[20, 20]
+    assert agent.cell is model.ground[5, 5]
+    assert agent.shifted is before
+    assert agent not in model.offset[20, 20].agents
 
 
 def torus_pair(air_torus, shape, grid_torus, origin=(0, 0)):

@@ -187,6 +187,13 @@ def _commit(agent: Agent, targets) -> None:
             state[location._key] = cell
 
 
+def _cell_size(space) -> list[float] | None:
+    """Return the cell size of a grid along each axis, if it places cells by one."""
+    if isinstance(space, Grid) and not isinstance(space, HexGrid):
+        return space._mapping[1]
+    return None
+
+
 def _bounds(space) -> list[tuple[float, float]] | None:
     """Return the lower and upper bound of a space along each axis, if it has them.
 
@@ -230,12 +237,12 @@ class CellLocation(_Location):
         follows: the name of another location of the same agent that this one
             follows. The agent's cell is then always the cell of ``space`` at that
             location, and assigning a cell moves the other location to its center.
-            If the other location is a cell too, only cells at the center of one of
-            its cells can be assigned; others raise ``ValueError``. If either
-            space is a torus, they must wrap in the same place: a torus grid must
-            have the same bounds as the other space and be a torus too, and a grid
-            in a torus space must lie within it. The first move raises
-            ``ValueError`` otherwise.
+            The other location must be at least as detailed: if it is a cell too,
+            its cells can't be larger than this location's. If either space is a
+            torus, they must wrap in the same place: a torus grid must have the
+            same bounds as the other space and be a torus too, and a grid in a
+            torus space must lie within it. The first move raises ``ValueError``
+            otherwise.
 
     Notes:
         Without ``follows``, this is what ``CellAgent.cell`` does, under a name of
@@ -311,6 +318,9 @@ class CellLocation(_Location):
                 f"{self.follows} to None to take the agent out of both."
             )
         self._check_space(agent, cell)
+        if agent.__dict__.get(self._key) is None:
+            # Before the round trip below, so a misdeclared pair gets its own error
+            self._check_alignment(agent)
         if isinstance(primary, CellLocation):
             # The primary snaps to its cell at this cell's center, and this location
             # then follows the center of that cell, which can be another cell
@@ -335,17 +345,35 @@ class CellLocation(_Location):
             )
 
     def _check_alignment(self, agent: Agent) -> None:
-        """Refuse a torus mismatch that would put the agent in the wrong cell.
+        """Refuse a coarser primary, or a torus mismatch, once per agent.
 
-        A torus grid that doesn't match its primary's space wraps points into
-        cells on the other side, and a torus primary wraps a cell outside it back
-        into its space. Neither raises by itself, so check once, when the agent
-        first gets a cell here. Partial grids in a bounded space fail loudly on
-        their own and stay allowed.
+        A follower finer than its primary cell can only reach the cells at the
+        centers of the primary's cells, so its extra detail is never used. A torus
+        grid that doesn't match its primary's space wraps points into cells on the
+        other side, and a torus primary wraps a cell outside it back into its
+        space. Neither raises by itself, so check once, when the agent first gets
+        a cell here. Partial grids in a bounded space fail loudly on their own and
+        stay allowed.
         """
         primary = self._primary(agent)
         space = self._space(agent)
         outer = primary._space(agent)
+        if isinstance(primary, CellLocation):
+            sizes, outer_sizes = _cell_size(space), _cell_size(outer)
+            if (
+                sizes is not None
+                and outer_sizes is not None
+                and any(
+                    size < outer_size * (1 - 1e-9)
+                    for size, outer_size in zip(sizes, outer_sizes, strict=True)
+                )
+            ):
+                raise ValueError(
+                    f"{type(agent).__name__}.{self.name} follows {self.follows}, "
+                    f"but model.{primary.space_name} has larger cells than model."
+                    f"{self.space_name}. The primary must be the most detailed "
+                    "location: let the finer grid be followed instead."
+                )
         torus = getattr(space, "torus", False)
         outer_torus = getattr(outer, "torus", False)
         if not (torus or outer_torus):
