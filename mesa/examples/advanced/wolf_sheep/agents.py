@@ -83,14 +83,9 @@ class Sheep(Animal):
 class Wolf(Animal):
     """A wolf that walks around, reproduces (asexually) and eats sheep."""
 
-    catch_radius = 0.5
-
     def feed(self):
-        """If possible, eat a sheep within reach."""
-        nearby, _ = self.model.meadow.get_agents_in_radius(
-            self.position, self.catch_radius
-        )
-        sheep = [obj for obj in nearby if isinstance(obj, Sheep)]
+        """If possible, eat a sheep on the same patch, as NetLogo's ``sheep-here``."""
+        sheep = [obj for obj in self.cell.agents if isinstance(obj, Sheep)]
         if sheep:  # If there are any sheep present
             sheep_to_eat = self.random.choice(sheep)
             self.energy += self.energy_from_food

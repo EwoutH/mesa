@@ -2,7 +2,7 @@
 
 ## Summary
 
-A simple ecological model, consisting of three agent types: wolves, sheep, and grass. The wolves and the sheep wander around a continuous meadow at random, and the grass grows on a grid of patches over the same area. Wolves and sheep both expend energy moving around, and replenish it by eating. Sheep eat the grass on the patch below them, and wolves eat sheep that come within reach.
+A simple ecological model, consisting of three agent types: wolves, sheep, and grass. The wolves and the sheep wander around a continuous meadow at random, and the grass grows on a grid of patches over the same area. Wolves and sheep both expend energy moving around, and replenish it by eating. Sheep eat the grass on the patch below them, and wolves eat sheep on their patch.
 
 If wolves and sheep have enough energy, they reproduce, creating a new wolf or sheep (in this simplified model, only one parent is needed for reproduction). The grass on each cell regrows at a constant rate. If any wolves and sheep run out of energy, they die.
 
