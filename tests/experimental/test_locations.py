@@ -267,6 +267,9 @@ def test_queries_exclude_the_asking_agent(model):
     agents, _ = model.opinion.get_k_nearest_agents(me.view, k=1, exclude=me)
     assert agents == [citizens[1]]
 
+    agents, _ = model.opinion.get_agents_in_radius(me.view, np.inf, exclude=me)
+    assert me not in agents
+
     # an agent that is not in the space is ignored
     stranger = Citizen(model)
     agents, _ = model.opinion.get_agents_in_radius(me.view, 0.5, exclude=stranger)

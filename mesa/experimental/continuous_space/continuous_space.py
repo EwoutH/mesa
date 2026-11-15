@@ -325,9 +325,9 @@ class ContinuousSpace[A: ContinuousSpaceAgent]:
             _in_bounds: internal, True if the point is known to be inside the space
         """
         distances, agents = self.calculate_distances(point, _in_bounds=_in_bounds)
-        if exclude is not None and (index := self._index_of(exclude)) is not None:
-            distances[index] = np.inf
         logical = distances <= radius
+        if exclude is not None and (index := self._index_of(exclude)) is not None:
+            logical[index] = False
         agents = list(compress(agents, logical))
         return (
             agents,
