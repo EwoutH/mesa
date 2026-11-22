@@ -1,0 +1,26 @@
+{
+  "name": "mesa-shared-workspace-poc",
+  "displayName": "Mesa Shared Workspace (PoC)",
+  "description": "Local pathfinding extension for a shared Mesa modelling workspace.",
+  "version": "0.0.1",
+  "publisher": "mesa-pathfinding",
+  "engines": { "vscode": "^1.85.0" },
+  "main": "./extension.cjs",
+  "extensionKind": ["workspace"],
+  "categories": ["Other"],
+  "capabilities": { "untrustedWorkspaces": { "supported": false } },
+  "contributes": {
+    "commands": [
+      { "command": "mesaWorkspace.open", "title": "Mesa: Open Shared Workspace" }
+    ],
+    "configuration": {
+      "title": "Mesa Shared Workspace PoC",
+      "properties": {
+        "mesaWorkspace.pythonPath": {
+          "type": "string", "default": "",
+          "description": "Python executable with Mesa's dependencies. Defaults to the checkout's .venv, then python."
+        }
+      }
+    }
+  }
+}
